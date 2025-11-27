@@ -2,7 +2,7 @@ use egui;
 mod ui;
 mod config;
 mod camera_app;
-
+mod hotkey;
 /* 
     Following functions are Windows only. They are used to handle dynamic window resize needed by combobox
 */
