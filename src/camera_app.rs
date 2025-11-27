@@ -101,9 +101,9 @@ impl CameraApp {
             // Camera combobox
             ui::combo_camera::show(ui, &mut self.ui_state, &mut self.state, &self.theme, &self.config);
 
-            ui::button_control::show(ui, &mut self.ui_state, &mut self.state, &self.theme, &self.config);
-            
             ui::button_calibrate::show(ui, &mut self.ui_state, &mut self.state, &self.theme, &self.config);
+            
+            ui::button_control::show(ui, &mut self.ui_state, &mut self.state, &self.theme, &self.config);
             
         });
 
