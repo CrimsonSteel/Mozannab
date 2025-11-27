@@ -68,6 +68,14 @@ impl CameraApp {
     }
 
     fn render_immediate_calibration_step1(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2]) {
+        self.render_immediate_calibration_step(ctx, position, viewport_size, true);
+    }
+
+    fn render_immediate_calibration_step2(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2]) {
+        self.render_immediate_calibration_step(ctx, position, viewport_size, false);
+    }
+
+    fn render_immediate_calibration_step(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2], good_bad: bool) {
         ctx.show_viewport_immediate(
             egui::ViewportId::from_hash_of("immediate_viewport"),
             egui::ViewportBuilder::default()
@@ -79,28 +87,43 @@ impl CameraApp {
                 .with_position(position)
                 ,
                 |ctx, _class| {
-                    
                     egui::CentralPanel::default()
-                    .frame(
-                        egui::Frame::none().fill(self.theme.panel_bg)
-                        .inner_margin(egui::Margin::same(10.0))
-                        .stroke(egui::Stroke::new(4.0, self.theme.button_primary))
+                        .frame(
+                            egui::Frame::none()
+                                .fill(self.theme.panel_bg)
+                                .inner_margin(egui::Margin::same(14.0)),
+                        )
+                        .show(ctx, |ui| {
 
+                            ui.disable();
 
-                        .stroke(egui::Stroke::new(1.0, self.theme.panel_stroke))
-                        .shadow(egui::epaint::Shadow {
-                            offset: egui::vec2(0.0, 4.0),
-                            blur: 16.0,
-                            spread: 0.0,
-                            color: self.theme.shadow,
-                        })
-                    )
-                    .show(ctx, |ui| {
-                        ui.label("Sit in a good posture and press Ctrl + Q");
-                        
-                    });
-
-                    
+                            // Center everything vertically and horizontally
+                            ui.with_layout(egui::Layout::centered_and_justified(egui::Direction::TopDown), |ui| {
+                                ui.vertical_centered(|ui| {
+                                    ui.spacing_mut().item_spacing.y = 18.0; 
+                                    ui.add_space(60.0);
+                                    ui.add(
+                                        egui::Label::new(
+                                            egui::RichText::new(
+                                                format!("Please sit up in {} posture. When you're ready, press:", if good_bad { "good" } else { "bad" })
+                                            )
+                                            .size(20.0)
+                                            .strong() 
+                                        )
+                                        .wrap()
+                                    );
+                                    
+                                    ui.add(
+                                        egui::Label::new(
+                                            egui::RichText::new("Ctrl + Q")
+                                                .size(40.0)
+                                                .strong() 
+                                                .color(self.theme.button_recording),
+                                        )
+                                    );
+                                });
+                            });
+                        });
                 },
         );
     }
@@ -120,24 +143,24 @@ impl CameraApp {
                     });
 
 
-                if self.ui_state.calibration_popup_step1_opened {
-                    // Desired viewport size:
+                if self.ui_state.calibration_popup_step1_opened || self.ui_state.calibration_popup_step2_opened {
+  
                     let viewport_w = 340.0;
                     let viewport_h = 250.0;
-                    // let margin = 12.0; // gap from screen edges
-
-                    // Get the screen rectangle (in egui points)
                     
                     let viewport_info = ctx.input(|i| i.viewport().clone());
-                    let screen_rect = viewport_info.monitor_size .unwrap_or_default();
+                    let screen_rect = viewport_info.monitor_size.unwrap_or_default();
 
-                    // Compute bottom-right position so the viewport sits inside the screen with `margin`
                     let pos_x = screen_rect.x - viewport_w;
                     let pos_y = screen_rect.y - viewport_h;
                     let position = [pos_x/2.0, pos_y/2.0];
 
-
-                    self.render_immediate_calibration_step1(ctx, position, [viewport_w, viewport_h]);
+                    if self.ui_state.calibration_popup_step1_opened {
+                        self.render_immediate_calibration_step1(ctx, position, [viewport_w, viewport_h]);
+                    }
+                    else {
+                        self.render_immediate_calibration_step2(ctx, position, [viewport_w, viewport_h]);
+                    }
                 }
                 
 
