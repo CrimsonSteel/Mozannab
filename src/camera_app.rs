@@ -9,11 +9,13 @@ use crate::ui::styles::ThemeColors;
 
 pub struct UiState {
     pub combo_open: bool,
+    pub prev_combo_open: bool,
 }
 impl UiState {
     pub fn new() -> Self {
         Self {
             combo_open: false,
+            prev_combo_open: false,
         }
     }
     
@@ -32,7 +34,7 @@ impl AppState {
     pub fn new() -> Self {
         Self {
             // placeholders for now for now
-            detected_cameras: vec![(0, "Integrated Camera".to_string()), (1, "USB Camera".to_string())],
+            detected_cameras: vec![(0, "Integrated Camera".to_string()), (1, "USB Camera".to_string()), (2, "Some strange camera fr".to_string())],
             selected_camera: 0,
             is_monitoring: false,
             is_calibrating: false,

@@ -52,6 +52,29 @@ pub fn show(
             }
     });
 
+    /* 
+        if combo opened, we need to main window size (which is transparent) to be bigger (so the full combo have space to show),
+        if closed, we need to get it back to its combact size
+
+        This is to not have a transparent dead zone around the app where used cannot click (although it is transparent)
+    */
+
+    //opened
+    if ui_state.combo_open && !ui_state.prev_combo_open {
+        let items = cameras.len() as f32;
+        let item_h = 24.0;
+        let padding = items * item_h + 10.0;
+        let new_h = config.compact_size[1] + padding;
+
+        // dbg!("Here");
+        crate::request_native_window_resize(&ui.ctx(), config.compact_size[0], new_h);
+    }
+    // closed
+    else if !ui_state.combo_open && ui_state.prev_combo_open {
+        crate::request_native_window_resize(&ui.ctx(), config.compact_size[0], config.compact_size[1]);
+    }
+
+    ui_state.prev_combo_open = ui_state.combo_open;
 
 }
 

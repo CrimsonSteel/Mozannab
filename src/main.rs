@@ -3,6 +3,38 @@ mod ui;
 mod config;
 mod camera_app;
 
+/* 
+    Following functions are Windows only. They are used to handle dynamic window resize needed by combobox
+*/
+#[cfg(windows)]
+fn windows_set_window_size_by_title(title: &str, width: i32, height: i32) {
+    use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
+    use windows::core::PCWSTR;
+    use windows::Win32::Foundation::HWND;
+    use windows::Win32::UI::WindowsAndMessaging::{FindWindowW, SetWindowPos, SWP_NOZORDER, SWP_NOMOVE};
+
+    let mut wide: Vec<u16> = OsStr::new(title).encode_wide().collect();
+    wide.push(0);
+    unsafe {
+        let hwnd = FindWindowW(PCWSTR::null(), PCWSTR(wide.as_ptr()));
+        if hwnd.0 != 0 {
+            // SetWindowPos(hwnd, 0, x, y, cx, cy, flags)
+            let _ = SetWindowPos(HWND(hwnd.0), HWND(0), 0, 0, width, height, SWP_NOZORDER | SWP_NOMOVE);
+        }
+    }
+}
+
+#[cfg(windows)]
+fn request_native_window_resize(ctx: &egui::Context, width_points: f32, height_points: f32) {
+    // convert logical points to physical pixels using egui's scale
+    let ppp = ctx.pixels_per_point();
+    let width_px = (width_points * ppp).round() as i32;
+    let height_px = (height_points * ppp).round() as i32;
+    let config = config::AppConfig::default();
+    windows_set_window_size_by_title(&config.window_title, width_px, height_px);
+}
+
 
 fn config_style(ctx: &egui::Context) {
 
@@ -70,7 +102,6 @@ fn run_ui() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

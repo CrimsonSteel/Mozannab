@@ -32,9 +32,9 @@ impl ThemeColors {
     pub fn loom() -> ThemeColors {
 
         ThemeColors {
-            // window_fill: egui::Color32::from_rgba_unmultiplied(0, 0, 0, 0),
+            window_fill: egui::Color32::from_rgba_unmultiplied(0, 0, 0, 0),
             // TODO: remove this after debugging
-            window_fill: egui::Color32::from_rgba_unmultiplied(128, 0, 0, 128),
+            // window_fill: egui::Color32::from_rgba_unmultiplied(128, 0, 0, 128),
 
             // Panel
             panel_bg: egui::Color32::from_rgb(255, 255, 255),
