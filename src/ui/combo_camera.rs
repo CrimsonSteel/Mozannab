@@ -15,41 +15,46 @@ pub fn show(
 
     // reset
     ui_state.combo_open = false;
+    ui_state.combo_enabled = !app_state.is_monitoring && !app_state.is_calibrating;
+    
     let width = 170.0;
     
     let cameras = &app_state.detected_cameras;
     let selected = &mut app_state.selected_camera;
 
-    egui::ComboBox::from_id_source("camera_select")
-    .selected_text(
-        egui::RichText::new(format!("📷 {}", cameras[*selected].1.clone()))
-            .size(14.0)
-            .color(colors.text_primary)
-    )
-    .width(width)
-    .show_ui(ui, |ui| {
+    // Wrap ComboBox in a ui.add_enabled() scope
+    ui.add_enabled_ui(ui_state.combo_enabled, |ui| {
+        egui::ComboBox::from_id_source("camera_select")
+            .selected_text(
+                egui::RichText::new(format!("📷 {}", cameras[*selected].1.clone()))
+                    .size(14.0)
+                    .color(colors.text_primary)
+            )
+            .width(width)
+            .show_ui(ui, |ui| {
+                ui_state.combo_open = true;
+                ui.style_mut().spacing.item_spacing.y = 4.0;
+                ui.style_mut().spacing.button_padding = egui::vec2(12.0, 10.0);
 
-        ui_state.combo_open = true;
-        ui.style_mut().spacing.item_spacing.y = 4.0;
-        ui.style_mut().spacing.button_padding = egui::vec2(12.0, 10.0);
+                for (i, camera) in cameras.iter().enumerate() {
+                    let is_selected = *selected == i;
 
-        for (i, camera) in cameras.iter().enumerate() {
-                let is_selected = *selected == i;
-                let response = ui.selectable_label(
-                    is_selected,
-                    egui::RichText::new(camera.1.clone())
-                        .size(14.0)
-                        .color(if is_selected {
-                            colors.text_on_primary
-                        } else {
-                            colors.text_primary
-                        })
-                );
-                
-                if response.clicked() {
-                    *selected = i;
+                    let response = ui.selectable_label(
+                        is_selected,
+                        egui::RichText::new(camera.1.clone())
+                            .size(14.0)
+                            .color(if is_selected {
+                                colors.text_on_primary
+                            } else {
+                                colors.text_primary
+                            })
+                    );
+                    
+                    if response.clicked() {
+                        *selected = i;
+                    }
                 }
-            }
+            });
     });
 
     /* 
@@ -75,6 +80,4 @@ pub fn show(
     }
 
     ui_state.prev_combo_open = ui_state.combo_open;
-
 }
-

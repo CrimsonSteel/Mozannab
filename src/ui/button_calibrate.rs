@@ -23,5 +23,21 @@ pub fn show(
 
 
     let btn_size = [config.button_width, config.button_height];
-    ui.add_sized(btn_size, btn);
+    let response = ui.add_sized(btn_size, btn);
+
+    if response.clicked() {
+        exec_clicked(ui, ui_state, app_state, colors, config);
+    }
+}
+
+pub fn exec_clicked(
+    ui: &mut egui::Ui,
+    ui_state: &mut crate::camera_app::UiState,
+    app_state: &mut crate::camera_app::AppState,
+    colors: &ThemeColors,
+    config: &crate::config::AppConfig,
+) {
+    app_state.is_calibrating = !app_state.is_calibrating;
+
+    ui_state.combo_enabled = !app_state.is_calibrating;
 }

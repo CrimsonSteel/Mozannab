@@ -10,12 +10,14 @@ use crate::ui::styles::ThemeColors;
 pub struct UiState {
     pub combo_open: bool,
     pub prev_combo_open: bool,
+    pub combo_enabled: bool
 }
 impl UiState {
     pub fn new() -> Self {
         Self {
             combo_open: false,
             prev_combo_open: false,
+            combo_enabled: false,
         }
     }
     
