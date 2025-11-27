@@ -40,4 +40,7 @@ pub fn exec_clicked(
     app_state.is_calibrating = !app_state.is_calibrating;
 
     ui_state.combo_enabled = !app_state.is_calibrating;
+
+
+    ui_state.calibration_popup_step1_opened = app_state.is_calibrating;
 }

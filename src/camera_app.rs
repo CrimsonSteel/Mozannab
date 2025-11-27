@@ -10,7 +10,11 @@ use crate::ui::styles::ThemeColors;
 pub struct UiState {
     pub combo_open: bool,
     pub prev_combo_open: bool,
-    pub combo_enabled: bool
+    pub combo_enabled: bool,
+
+    pub calibration_popup_step1_opened: bool,
+    pub calibration_popup_step2_opened: bool,
+
 }
 impl UiState {
     pub fn new() -> Self {
@@ -18,6 +22,8 @@ impl UiState {
             combo_open: false,
             prev_combo_open: false,
             combo_enabled: false,
+            calibration_popup_step1_opened: false,
+            calibration_popup_step2_opened: false,
         }
     }
     
@@ -61,6 +67,45 @@ impl CameraApp {
         }
     }
 
+    fn render_immediate_calibration_step1(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2]) {
+        ctx.show_viewport_immediate(
+            egui::ViewportId::from_hash_of("immediate_viewport"),
+            egui::ViewportBuilder::default()
+                .with_title("Immediate Viewport")
+                .with_inner_size(viewport_size)
+                .with_decorations(false)
+                .with_transparent(true)
+                .with_window_level(egui::viewport::WindowLevel::AlwaysOnTop)
+                .with_position(position)
+                ,
+                |ctx, _class| {
+                    
+                    egui::CentralPanel::default()
+                    .frame(
+                        egui::Frame::none().fill(self.theme.panel_bg)
+                        .inner_margin(egui::Margin::same(10.0))
+                        .stroke(egui::Stroke::new(4.0, self.theme.button_primary))
+
+
+                        .stroke(egui::Stroke::new(1.0, self.theme.panel_stroke))
+                        .shadow(egui::epaint::Shadow {
+                            offset: egui::vec2(0.0, 4.0),
+                            blur: 16.0,
+                            spread: 0.0,
+                            color: self.theme.shadow,
+                        })
+                    )
+                    .show(ctx, |ui| {
+                        ui.label("Sit in a good posture and press Ctrl + Q");
+                        
+                    });
+
+                    
+                },
+        );
+    }
+
+
     // Rendering main UI
     fn render_ui(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default()
@@ -73,6 +118,29 @@ impl CameraApp {
                     .show(ctx, |ui| {
                         self.render_main_panel(ui);
                     });
+
+
+                if self.ui_state.calibration_popup_step1_opened {
+                    // Desired viewport size:
+                    let viewport_w = 340.0;
+                    let viewport_h = 250.0;
+                    // let margin = 12.0; // gap from screen edges
+
+                    // Get the screen rectangle (in egui points)
+                    
+                    let viewport_info = ctx.input(|i| i.viewport().clone());
+                    let screen_rect = viewport_info.monitor_size .unwrap_or_default();
+
+                    // Compute bottom-right position so the viewport sits inside the screen with `margin`
+                    let pos_x = screen_rect.x - viewport_w;
+                    let pos_y = screen_rect.y - viewport_h;
+                    let position = [pos_x/2.0, pos_y/2.0];
+
+
+                    self.render_immediate_calibration_step1(ctx, position, [viewport_w, viewport_h]);
+                }
+                
+
             });
     }
 
