@@ -116,48 +116,49 @@ impl CameraApp {
                 .with_decorations(false)
                 .with_transparent(true)
                 .with_window_level(egui::viewport::WindowLevel::AlwaysOnTop)
-                .with_position(position)
-                ,
-                |ctx, _class| {
-                    egui::CentralPanel::default()
-                        .frame(
-                            egui::Frame::none()
-                                .fill(if good_bad { self.theme.panel_bg } else { self.theme.button_recording })
-                                .inner_margin(egui::Margin::same(14.0)),
-                        )
-                        .show(ctx, |ui| {
+                .with_position(position),
+            |ctx, _class| {
+                egui::CentralPanel::default()
+                    .frame(
+                        egui::Frame::none()
+                            .fill(if good_bad { self.theme.panel_bg } else { self.theme.button_recording })
+                            .inner_margin(egui::Margin::same(14.0)),
+                    )
+                    .show(ctx, |ui| {
+                        ui.disable();
 
-                            ui.disable();
-
-                            // Center everything vertically and horizontally
-                            ui.with_layout(egui::Layout::centered_and_justified(egui::Direction::TopDown), |ui| {
-                                ui.vertical_centered(|ui| {
-                                    ui.spacing_mut().item_spacing.y = 18.0; 
-                                    ui.add_space(60.0);
-                                    ui.add(
-                                        egui::Label::new(
-                                            egui::RichText::new(
-                                                format!("Please sit up in {} posture. When you're ready, press:", if good_bad { "good" } else { "bad" })
-                                            )
-                                            .size(20.0)
-                                            .strong() 
-                                            .color(if !good_bad { self.theme.panel_bg } else { self.theme.text_primary}),
-                                        )
-                                        .wrap()
-                                    );
-                                    
-                                    ui.add(
-                                        egui::Label::new(
-                                            egui::RichText::new("Ctrl + Q")
-                                                .size(40.0)
-                                                .strong() 
-                                                .color(if good_bad { self.theme.button_recording} else { self.theme.panel_bg}),
-                                        )
-                                    );
-                                });
-                            });
+                        // Get available space
+                        let available_height = ui.available_height();
+                        
+                        ui.vertical_centered(|ui| {
+                            // Add space to push content to vertical center
+                            ui.add_space(available_height / 2.0 - 50.0); // Adjust offset as needed
+                            
+                            ui.spacing_mut().item_spacing.y = 18.0;
+                            
+                            ui.add(
+                                egui::Label::new(
+                                    egui::RichText::new(
+                                        format!("Please sit up in {} posture. When you're ready, press:", if good_bad { "good" } else { "bad" })
+                                    )
+                                    .size(20.0)
+                                    .strong()
+                                    .color(if !good_bad { self.theme.panel_bg } else { self.theme.text_primary }),
+                                )
+                                .wrap()
+                            );
+                            
+                            ui.add(
+                                egui::Label::new(
+                                    egui::RichText::new("Ctrl + Q")
+                                        .size(40.0)
+                                        .strong()
+                                        .color(if good_bad { self.theme.button_recording } else { self.theme.panel_bg }),
+                                )
+                            );
                         });
-                },
+                    });
+            },
         );
     }
 
@@ -170,38 +171,28 @@ impl CameraApp {
                 .with_decorations(false)
                 .with_transparent(true)
                 .with_window_level(egui::viewport::WindowLevel::AlwaysOnTop)
-                .with_position(position)
-                ,
-                |ctx, _class| {
-                    egui::CentralPanel::default()
-                        .frame(
-                            egui::Frame::none()
-                                .fill(self.theme.panel_bg)
-                                .inner_margin(egui::Margin::same(34.0)),
-                        )
-                        .show(ctx, |ui| {
-
-                            ui.disable();
-
-                            // Center everything vertically and horizontally
-                            ui.with_layout(egui::Layout::centered_and_justified(egui::Direction::TopDown), |ui| {
-                                ui.vertical_centered(|ui| {
-                                    ui.spacing_mut().item_spacing.y = 18.0; 
-                                    ui.add_space(60.0);
-                                    ui.add(
-                                        egui::Label::new(
-                                            egui::RichText::new(
-                                                format!("Calibration Done!")
-                                            )
-                                            .size(30.0)
-                                            .strong()
-                                        )
-                                        .wrap()
-                                    );
-                                });
-                            });
+                .with_position(position),
+            |ctx, _class| {
+                egui::CentralPanel::default()
+                    .frame(
+                        egui::Frame::none()
+                            .fill(self.theme.button_primary)
+                            .inner_margin(egui::Margin::same(34.0)),
+                    )
+                    .show(ctx, |ui| {
+                        // Center everything vertically and horizontally
+                        ui.centered_and_justified(|ui| {
+                            ui.add(
+                                egui::Label::new(
+                                    egui::RichText::new("Calibration Done!")
+                                        .color(self.theme.panel_bg)
+                                        .size(30.0)
+                                        .strong()
+                                )
+                            );
                         });
-                },
+                    });
+            },
         );
     }
 
