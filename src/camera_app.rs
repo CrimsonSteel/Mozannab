@@ -25,6 +25,7 @@ pub struct UiState {
 
     pub calibration_popup_step1_opened: bool,
     pub calibration_popup_step2_opened: bool,
+    pub step_progress: f32,
 
     pub open_time: Option<Instant>,
 }
@@ -36,6 +37,7 @@ impl UiState {
             combo_enabled: false,
             calibration_popup_step1_opened: false,
             calibration_popup_step2_opened: false,
+            step_progress: 0.0,
             open_time: None,
         }
     }
@@ -118,15 +120,15 @@ impl CameraApp {
         }
     }
 
-    fn render_immediate_calibration_step1(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2]) {
-        self.render_immediate_calibration_step(ctx, position, viewport_size, true);
+    fn render_immediate_calibration_step1(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2], progress: f32) {
+        self.render_immediate_calibration_step(ctx, position, viewport_size, true, progress);
     }
 
-    fn render_immediate_calibration_step2(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2]) {
-        self.render_immediate_calibration_step(ctx, position, viewport_size, false);
+    fn render_immediate_calibration_step2(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2], progress: f32) {
+        self.render_immediate_calibration_step(ctx, position, viewport_size, false, progress);
     }
 
-    fn render_immediate_calibration_step(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2], good_bad: bool) {
+    fn render_immediate_calibration_step(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2], good_bad: bool, progress: f32) {
         ctx.show_viewport_immediate(
             egui::ViewportId::from_hash_of("immediate_viewport"),
             egui::ViewportBuilder::default()
@@ -141,11 +143,12 @@ impl CameraApp {
                     .frame(
                         egui::Frame::none()
                             .fill(if good_bad { self.theme.panel_bg } else { self.theme.button_recording })
-                            .inner_margin(egui::Margin::same(14.0)),
+                            .inner_margin(egui::Margin::same(14.0))
+                            .stroke(egui::Stroke::new(6.0 + progress * 16.0, if good_bad { self.theme.button_recording } else { self.theme.panel_bg }))
                     )
                     .show(ctx, |ui| {
                         ui.disable();
-
+                        
                         // Get available space
                         let available_height = ui.available_height();
                         
@@ -196,7 +199,8 @@ impl CameraApp {
                     .frame(
                         egui::Frame::none()
                             .fill(self.theme.button_primary)
-                            .inner_margin(egui::Margin::same(34.0)),
+                            .inner_margin(egui::Margin::same(34.0))
+                            .stroke(egui::Stroke::new(6.0, self.theme.button_primary_hover))
                     )
                     .show(ctx, |ui| {
                         // Center everything vertically and horizontally
@@ -242,10 +246,10 @@ impl CameraApp {
                     let position = [pos_x/2.0, pos_y/2.0];
 
                     if self.ui_state.calibration_popup_step1_opened {
-                        self.render_immediate_calibration_step1(ctx, position, [viewport_w, viewport_h]);
+                        self.render_immediate_calibration_step1(ctx, position, [viewport_w, viewport_h], self.ui_state.step_progress);
                     }
                     else if self.ui_state.calibration_popup_step2_opened {
-                        self.render_immediate_calibration_step2(ctx, position, [viewport_w, viewport_h]);
+                        self.render_immediate_calibration_step2(ctx, position, [viewport_w, viewport_h], self.ui_state.step_progress);
                     }
                     else if self.state.calibration_state == CalibrationState::CalibrationDone {
                         if let Some(open_time) = self.ui_state.open_time {
@@ -375,6 +379,7 @@ impl CameraApp {
         match app_event {
             events::AppEvent::CalibrationProgress(progress) => {
                 // dbg!("Calibration Progress: {}", progress);
+                self.ui_state.step_progress = progress;
             }
 
             events::AppEvent::CalibrationError(err) => {
@@ -391,7 +396,7 @@ impl CameraApp {
 
                 self.ui_state.calibration_popup_step1_opened = false;
                 self.ui_state.calibration_popup_step2_opened = true;
-
+                self.ui_state.step_progress = 0.0;
                 // next state
                 self.state.calibration_state = CalibrationState::CalibrationBadPose;
             }
@@ -412,6 +417,7 @@ impl CameraApp {
                 // next state
                 self.state.calibration_state = CalibrationState::CalibrationDone;
                 self.state.is_calibrating = false;
+                self.ui_state.step_progress = 0.0;
                 self.ui_state.open_time = Some(Instant::now());
             }
 

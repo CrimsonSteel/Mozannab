@@ -10,7 +10,7 @@ pub fn opencv_posture_calibrate(tx: Sender<AppEvent>, rx: &Receiver<CalibrationC
     // Good pose calibration phase
     for i in 0..=10 {
         std::thread::sleep(std::time::Duration::from_millis(200));
-        let progress = (i as f32) / 20.0;
+        let progress = (i as f32) / 10.0;
         let _ = tx.send(AppEvent::CalibrationProgress(progress));
     }
 
@@ -33,7 +33,7 @@ pub fn opencv_posture_calibrate(tx: Sender<AppEvent>, rx: &Receiver<CalibrationC
 
     for i in 0..=10 {
         std::thread::sleep(std::time::Duration::from_millis(200));
-        let progress = 0.5 + (i as f32) / 20.0;
+        let progress = 0.5 + (i as f32) / 10.0;
         let _ = tx.send(AppEvent::CalibrationProgress(progress));
     }
 
