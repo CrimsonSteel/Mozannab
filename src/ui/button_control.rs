@@ -17,32 +17,36 @@ pub fn show(
     } else {
         (colors.button_primary, colors.button_primary_hover)
     };
-    
-    let btn = egui::Button::new(
-        egui::RichText::new(button_text)
-            .size(14.0)
-            .color(colors.text_on_primary)
-    )
-    .fill(button_color)
-    .rounding(10.0)
-    .stroke(egui::Stroke::NONE);
 
-    let response = ui.add_sized(btn_size, btn);
+    ui.add_enabled_ui(!app_state.is_calibrating, |ui| {
+        
+        let btn = egui::Button::new(
+            egui::RichText::new(button_text)
+                .size(14.0)
+                .color(colors.text_on_primary)
+        )
+        .fill(button_color)
+        .rounding(10.0)
+        .stroke(egui::Stroke::NONE);
 
-    if response.hovered() {
-        ui.painter().rect_filled(response.rect, 10.0, button_hover);
-        ui.painter().text(
-            response.rect.center(),
-            egui::Align2::CENTER_CENTER,
-            button_text,
-            egui::FontId::proportional(14.0),
-            egui::Color32::WHITE,
-        );
-    }
+        let response = ui.add_sized(btn_size, btn);
 
-    if response.clicked() {
-        exec_clicked(ui_state, app_state);
-    }
+        if response.hovered() {
+            ui.painter().rect_filled(response.rect, 10.0, button_hover);
+            ui.painter().text(
+                response.rect.center(),
+                egui::Align2::CENTER_CENTER,
+                button_text,
+                egui::FontId::proportional(14.0),
+                egui::Color32::WHITE,
+            );
+        }
+
+        if response.clicked() {
+            exec_clicked(ui_state, app_state);
+        }
+
+    });
 
 }
 

@@ -9,25 +9,29 @@ pub fn show(
     config: &crate::config::AppConfig,
 ) {
 
-    let is_calibrating = app_state.is_calibrating;
-    let button_text = if is_calibrating { "Calibrating.." } else { "Calibrate" };
+    ui.add_enabled_ui(!app_state.is_monitoring, |ui| {
+    
+        let is_calibrating = app_state.is_calibrating;
+        let button_text = if is_calibrating { "Calibrating.." } else { "Calibrate" };
 
-    let btn = egui::Button::new(
-        egui::RichText::new(button_text)
-            .size(14.0)
-            .color(colors.text_secondary)
-    )
-    .fill(colors.button_secondary_fill)
-    .rounding(10.0)
-    .stroke(egui::Stroke::new(1.0, colors.button_secondary_stroke));
+        let btn = egui::Button::new(
+            egui::RichText::new(button_text)
+                .size(14.0)
+                .color(colors.text_secondary)
+        )
+        .fill(colors.button_secondary_fill)
+        .rounding(10.0)
+        .stroke(egui::Stroke::new(1.0, colors.button_secondary_stroke));
 
 
-    let btn_size = [config.button_width, config.button_height];
-    let response = ui.add_sized(btn_size, btn);
+        let btn_size = [config.button_width, config.button_height];
+        let response = ui.add_sized(btn_size, btn);
 
-    if response.clicked() {
-        exec_clicked(ui_state, app_state);
-    }
+        if response.clicked() {
+            exec_clicked(ui_state, app_state);
+        }
+
+    });
 }
 
 pub fn exec_clicked(
