@@ -70,16 +70,11 @@ pub fn show(
             });
     });
 
-    // Current open state
-    let is_open = egui::containers::ComboBox::is_open(ui.ctx(), widget_id);
-
-    // previous open state
-    let was_open = ui_state.prev_combo_open;
-    
-    ui_state.combo_open = is_open;
+    // TODO: known bug: is_open always returns false preventing any ui resizing logic
+    ui_state.combo_open = egui::containers::ComboBox::is_open(ui.ctx(), widget_id);
 
     // Resize when opening
-    if is_open && !was_open {
+    if ui_state.combo_open && !ui_state.prev_combo_open {
         let items = cameras.len() as f32;
         let item_h = 24.0;
         let padding = items * item_h + 10.0;
@@ -88,7 +83,7 @@ pub fn show(
         crate::request_native_window_resize(&ui.ctx(), config.compact_size[0], new_h);
     }
     // Resize back when closed
-    else if !is_open && was_open {
+    else if !ui_state.combo_open && ui_state.prev_combo_open {
         crate::request_native_window_resize(
             &ui.ctx(),
             config.compact_size[0],
@@ -96,7 +91,7 @@ pub fn show(
         );
     }
 
-    ui_state.prev_combo_open = is_open;
+    ui_state.prev_combo_open = ui_state.combo_open;
 
     /*if app_state.selected_camera != old_selected {
         dbg!("Camera changed to index {}", app_state.selected_camera);
