@@ -26,21 +26,23 @@ pub fn show(
     let response = ui.add_sized(btn_size, btn);
 
     if response.clicked() {
-        exec_clicked(ui, ui_state, app_state, colors, config);
+        exec_clicked(ui_state, app_state);
     }
 }
 
 pub fn exec_clicked(
-    ui: &mut egui::Ui,
     ui_state: &mut crate::camera_app::UiState,
     app_state: &mut crate::camera_app::AppState,
-    colors: &ThemeColors,
-    config: &crate::config::AppConfig,
 ) {
     app_state.is_calibrating = !app_state.is_calibrating;
 
     ui_state.combo_enabled = !app_state.is_calibrating;
 
-
     ui_state.calibration_popup_step1_opened = app_state.is_calibrating;
+
+    if app_state.is_calibrating {
+        // reset to initial state
+        app_state.calibration_state = crate::camera_app::CalibrationState::CalibrationGoodPose;
+        dbg!("Calibration mode: {:?}", app_state.calibration_state);
+    }
 }

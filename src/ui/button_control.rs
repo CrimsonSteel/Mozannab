@@ -41,18 +41,15 @@ pub fn show(
     }
 
     if response.clicked() {
-        exec_clicked(ui, ui_state, app_state, colors, config);
+        exec_clicked(ui_state, app_state);
     }
 
 }
 
 
 pub fn exec_clicked(
-    ui: &mut egui::Ui,
     ui_state: &mut crate::camera_app::UiState,
     app_state: &mut crate::camera_app::AppState,
-    colors: &ThemeColors,
-    config: &crate::config::AppConfig,
 ) {
     app_state.is_monitoring = !app_state.is_monitoring;
 

@@ -3,6 +3,9 @@ mod ui;
 mod config;
 mod camera_app;
 mod hotkey;
+mod events;
+mod commands;
+mod core;
 /* 
     Following functions are Windows only. They are used to handle dynamic window resize needed by combobox
 */
@@ -34,7 +37,6 @@ fn request_native_window_resize(ctx: &egui::Context, width_points: f32, height_p
     let config = config::AppConfig::default();
     windows_set_window_size_by_title(&config.window_title, width_px, height_px);
 }
-
 
 fn config_style(ctx: &egui::Context) {
 
