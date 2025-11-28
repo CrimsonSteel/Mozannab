@@ -12,7 +12,7 @@ impl Default for AppConfig {
             ui_scale: 0.75,
             button_width: 90.0,
             button_height: 32.0,
-            compact_size: [450.0, 58.0],
+            compact_size: [450.0, 72.0],
             window_title: String::from("Mozannab"),
         }
     }

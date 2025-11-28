@@ -80,11 +80,12 @@ fn config_style(ctx: &egui::Context) {
 
 fn run_ui() -> Result<(), Box<dyn std::error::Error>> {
 
+    let config = config::AppConfig::default();
     let icon_data = load_icon();
     // Initialize egui 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_inner_size([340.0, 250.0])
+            .with_inner_size(config.compact_size)
             .with_decorations(false)
             .with_transparent(true)
             .with_window_level(egui::viewport::WindowLevel::AlwaysOnTop)

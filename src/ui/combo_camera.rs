@@ -21,8 +21,6 @@ pub fn show(
             ui.label("📷 No cameras");
         });
 
-        // keep prev flag consistent
-        ui_state.prev_combo_open = ui_state.combo_open;
         return;
     }
 
@@ -32,23 +30,21 @@ pub fn show(
     // Save previous
     // let old_selected = app_state.selected_camera;
 
-    let widget_id = ui.make_persistent_id("camera_select");
-
     ui.add_enabled_ui(ui_state.combo_enabled, |ui| {
-        egui::ComboBox::from_id_source("camera_select")
+        // let widget_id = ui.make_persistent_id("camera_select");
+        let combo_box = egui::ComboBox::from_id_source("camera_select")
             .selected_text(
-                egui::RichText::new(format!(
-                    "📷 {}",
-                    cameras[app_state.selected_camera as usize].1
-                ))
-                .size(14.0)
-                .color(colors.text_primary),
+                {
+                    egui::RichText::new(format!("📷 {}",cameras[app_state.selected_camera as usize].1))
+                    .size(14.0)
+                    .color(colors.text_primary)
+                }
             )
             .width(width)
             .show_ui(ui, |ui| {
                 ui.style_mut().spacing.item_spacing.y = 4.0;
                 ui.style_mut().spacing.button_padding = egui::vec2(12.0, 10.0);
-
+                
                 for (i, cam) in cameras.iter().enumerate() {
                     let is_selected = app_state.selected_camera == i as i32;
 
@@ -59,26 +55,27 @@ pub fn show(
                         } else {
                             colors.text_primary
                         });
-
+                        
                     let resp = ui.selectable_label(is_selected, text);
 
                     if resp.clicked() {
                         app_state.selected_camera = i as i32;
+                        // ui_state.combo_open = false;
+                        // println!("Selected camera index: {}", egui::containers::ComboBox::is_open(ui.ctx(), widget_id));
                     }
                 }
 
             });
+        
+        ui_state.combo_open = combo_box.inner.is_some();
     });
-
-    // TODO: known bug: is_open always returns false preventing any ui resizing logic
-    ui_state.combo_open = egui::containers::ComboBox::is_open(ui.ctx(), widget_id);
 
     // Resize when opening
     if ui_state.combo_open && !ui_state.prev_combo_open {
         let items = cameras.len() as f32;
         let item_h = 24.0;
         let padding = items * item_h + 10.0;
-        let new_h = config.compact_size[1] + padding;
+        let new_h = 24.0*config.compact_size[1] + padding;
 
         crate::request_native_window_resize(&ui.ctx(), config.compact_size[0], new_h);
     }
