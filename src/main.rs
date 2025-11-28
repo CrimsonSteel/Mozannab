@@ -1,6 +1,7 @@
 use egui;
 mod ui;
 mod config;
+mod cameras;
 mod camera_app;
 mod hotkey;
 mod events;

@@ -4,6 +4,7 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::time::Instant;
 
 use crate::config::AppConfig;
+use crate::cameras;
 use crate::ui;
 use crate::ui::styles::ThemeColors;
 use crate::events;
@@ -43,8 +44,9 @@ impl UiState {
 
 pub struct AppState {
     // opencv ID, camera name
-    pub detected_cameras: Vec<(i32, String)>,
-    pub selected_camera: usize,
+    pub detected_cameras: crate::cameras::CameraList,
+    // opencv uses i32 for camera index
+    pub selected_camera: i32,
     pub is_monitoring: bool,
     pub is_calibrating: bool,
     pub calibration_state: CalibrationState,
@@ -55,13 +57,25 @@ impl AppState {
     pub fn new() -> Self {
         Self {
             // placeholders for now for now
-            detected_cameras: vec![(0, "Integrated Camera".to_string()), (1, "USB Camera".to_string()), (2, "Some strange camera fr".to_string())],
-            selected_camera: 0,
+            detected_cameras: vec![],
+            selected_camera: -1,
             is_monitoring: false,
             is_calibrating: false,
             calibration_state: CalibrationState::CalibrationNone,
         }
-    }   
+    }
+
+    pub fn new_with_camera_list(cameras: crate::cameras::CameraList) -> Self {
+        let empty = cameras.is_empty();
+
+        Self {
+            detected_cameras: cameras,
+            selected_camera: if empty { -1 } else { 0 },
+            is_monitoring: false,
+            is_calibrating: false,
+            calibration_state: CalibrationState::CalibrationNone,
+        }
+    }
 }
 
 pub struct CameraApp {
@@ -85,9 +99,16 @@ impl CameraApp {
     pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
 
         let hotkey_data = crate::hotkey::setup_hotkeys();
+        let detected_cameras = match cameras::enumerate_cameras() {
+            Ok(cameras) => cameras,
+            Err(e) => {
+                eprintln!("Error enumerating cameras: {}", e);
+                vec![(0, "No cameras found".to_string())]
+            }
+        };
         
         Self {
-            state: AppState::new(),
+            state: AppState::new_with_camera_list(detected_cameras),
             ui_state: UiState::new(),
             config: AppConfig::default(),
             theme: ThemeColors::loom(),

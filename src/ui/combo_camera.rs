@@ -3,8 +3,6 @@ use crate::config;
 
 use super::styles::ThemeColors;
 
-type CameraList = Vec<(i32, String)>;
-
 pub fn show(
     ui: &mut egui::Ui,
     ui_state: &mut crate::camera_app::UiState,
@@ -26,7 +24,7 @@ pub fn show(
     ui.add_enabled_ui(ui_state.combo_enabled, |ui| {
         egui::ComboBox::from_id_source("camera_select")
             .selected_text(
-                egui::RichText::new(format!("📷 {}", cameras[*selected].1.clone()))
+                egui::RichText::new(format!("📷 {}", cameras[(*selected) as usize].1.clone()))
                     .size(14.0)
                     .color(colors.text_primary)
             )
@@ -37,7 +35,7 @@ pub fn show(
                 ui.style_mut().spacing.button_padding = egui::vec2(12.0, 10.0);
 
                 for (i, camera) in cameras.iter().enumerate() {
-                    let is_selected = *selected == i;
+                    let is_selected = *selected == i as i32;
 
                     let response = ui.selectable_label(
                         is_selected,
@@ -51,7 +49,7 @@ pub fn show(
                     );
                     
                     if response.clicked() {
-                        *selected = i;
+                        *selected = i as i32;
                     }
                 }
             });
