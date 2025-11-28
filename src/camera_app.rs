@@ -122,7 +122,7 @@ impl CameraApp {
                     egui::CentralPanel::default()
                         .frame(
                             egui::Frame::none()
-                                .fill(self.theme.panel_bg)
+                                .fill(if good_bad { self.theme.panel_bg } else { self.theme.button_recording })
                                 .inner_margin(egui::Margin::same(14.0)),
                         )
                         .show(ctx, |ui| {
@@ -141,6 +141,7 @@ impl CameraApp {
                                             )
                                             .size(20.0)
                                             .strong() 
+                                            .color(if !good_bad { self.theme.panel_bg } else { self.theme.text_primary}),
                                         )
                                         .wrap()
                                     );
@@ -150,7 +151,7 @@ impl CameraApp {
                                             egui::RichText::new("Ctrl + Q")
                                                 .size(40.0)
                                                 .strong() 
-                                                .color(self.theme.button_recording),
+                                                .color(if good_bad { self.theme.button_recording} else { self.theme.panel_bg}),
                                         )
                                     );
                                 });
