@@ -8,6 +8,13 @@ eframe = "0.28"
 egui = "0.28"
 global-hotkey = "0.6"
 nokhwa = { version = "0.10.10", features = ["input-native"] }
+image = "0.24"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.48", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
+
+[package.metadata.bundle]
+name = "Mozannab"
+identifier = "com.company.mozannab"
+icon = ["assets/icon.png"]
+resources = ["assets"] 

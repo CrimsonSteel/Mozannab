@@ -80,6 +80,7 @@ fn config_style(ctx: &egui::Context) {
 
 fn run_ui() -> Result<(), Box<dyn std::error::Error>> {
 
+    let icon_data = load_icon();
     // Initialize egui 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -87,7 +88,8 @@ fn run_ui() -> Result<(), Box<dyn std::error::Error>> {
             .with_decorations(false)
             .with_transparent(true)
             .with_window_level(egui::viewport::WindowLevel::AlwaysOnTop)
-            .with_position([0.0, 0.0]),
+            .with_position([0.0, 0.0])
+            .with_icon(icon_data),
         ..Default::default()
     };
 
@@ -106,6 +108,19 @@ fn run_ui() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn load_icon() -> egui::IconData {
+    let icon_bytes = include_bytes!("../assets/icon.png");
+    let image = image::load_from_memory(icon_bytes)
+        .expect("Failed to load icon")
+        .into_rgba8();
+    let (width, height) = image.dimensions();
+    
+    egui::IconData {
+        rgba: image.into_raw(),
+        width,
+        height,
+    }
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     return run_ui()
