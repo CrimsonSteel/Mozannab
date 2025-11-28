@@ -132,7 +132,7 @@ impl CameraApp {
         ctx.show_viewport_immediate(
             egui::ViewportId::from_hash_of("immediate_viewport"),
             egui::ViewportBuilder::default()
-                .with_title("Immediate Viewport")
+                .with_title(if good_bad { "Good Posture Calibration" } else { "Bad Posture Calibration" })
                 .with_inner_size(viewport_size)
                 .with_decorations(false)
                 .with_transparent(true)
@@ -253,8 +253,8 @@ impl CameraApp {
                     }
                     else if self.state.calibration_state == CalibrationState::CalibrationDone {
                         if let Some(open_time) = self.ui_state.open_time {
-                            // Close after 2 seconds
-                            if open_time.elapsed().as_secs() >= 4 {
+                            // Close after 3 seconds
+                            if open_time.elapsed().as_secs() >= 3 {
                                 self.state.calibration_state = CalibrationState::CalibrationNone;
                                 self.ui_state.open_time = None;
                             }
