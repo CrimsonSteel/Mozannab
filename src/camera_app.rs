@@ -91,8 +91,6 @@ pub struct CameraApp {
 
     // For sending commands to the calibration thread
     cmds_tx: Option<Sender<commands::Command>>,
-    
-
 }
 
 impl CameraApp {
