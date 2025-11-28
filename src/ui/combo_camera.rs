@@ -1,6 +1,5 @@
 use eframe::egui;
 use crate::config;
-
 use super::styles::ThemeColors;
 
 pub fn show(
@@ -11,71 +10,95 @@ pub fn show(
     config: &config::AppConfig,
 ) {
 
-    // reset
-    ui_state.combo_open = false;
     ui_state.combo_enabled = !app_state.is_monitoring && !app_state.is_calibrating;
-    
-    let width = 170.0;
-    
-    let cameras = &app_state.detected_cameras;
-    let selected = &mut app_state.selected_camera;
 
-    // Wrap ComboBox in a ui.add_enabled() scope
+    let width = 170.0;
+    let cameras = &app_state.detected_cameras;
+
+     // just for safety
+    if cameras.is_empty() {
+        ui.horizontal(|ui| {
+            ui.label("📷 No cameras");
+        });
+
+        // keep prev flag consistent
+        ui_state.prev_combo_open = ui_state.combo_open;
+        return;
+    }
+
+    // just for safety, clamp selected camera
+    app_state.selected_camera = app_state.selected_camera.clamp(0, cameras.len() as i32 - 1);
+
+    // Save previous
+    // let old_selected = app_state.selected_camera;
+
+    let widget_id = ui.make_persistent_id("camera_select");
+
     ui.add_enabled_ui(ui_state.combo_enabled, |ui| {
         egui::ComboBox::from_id_source("camera_select")
             .selected_text(
-                egui::RichText::new(format!("📷 {}", cameras[(*selected) as usize].1.clone()))
-                    .size(14.0)
-                    .color(colors.text_primary)
+                egui::RichText::new(format!(
+                    "📷 {}",
+                    cameras[app_state.selected_camera as usize].1
+                ))
+                .size(14.0)
+                .color(colors.text_primary),
             )
             .width(width)
             .show_ui(ui, |ui| {
-                ui_state.combo_open = true;
                 ui.style_mut().spacing.item_spacing.y = 4.0;
                 ui.style_mut().spacing.button_padding = egui::vec2(12.0, 10.0);
 
-                for (i, camera) in cameras.iter().enumerate() {
-                    let is_selected = *selected == i as i32;
+                for (i, cam) in cameras.iter().enumerate() {
+                    let is_selected = app_state.selected_camera == i as i32;
 
-                    let response = ui.selectable_label(
-                        is_selected,
-                        egui::RichText::new(camera.1.clone())
-                            .size(14.0)
-                            .color(if is_selected {
-                                colors.text_on_primary
-                            } else {
-                                colors.text_primary
-                            })
-                    );
-                    
-                    if response.clicked() {
-                        *selected = i as i32;
+                    let text = egui::RichText::new(cam.1.clone())
+                        .size(14.0)
+                        .color(if is_selected {
+                            colors.text_on_primary
+                        } else {
+                            colors.text_primary
+                        });
+
+                    let resp = ui.selectable_label(is_selected, text);
+
+                    if resp.clicked() {
+                        app_state.selected_camera = i as i32;
                     }
                 }
+
             });
     });
 
-    /* 
-        if combo opened, we need to main window size (which is transparent) to be bigger (so the full combo have space to show),
-        if closed, we need to get it back to its combact size
+    // Current open state
+    let is_open = egui::containers::ComboBox::is_open(ui.ctx(), widget_id);
 
-        This is to not have a transparent dead zone around the app where used cannot click (although it is transparent)
-    */
+    // previous open state
+    let was_open = ui_state.prev_combo_open;
+    
+    ui_state.combo_open = is_open;
 
-    //opened
-    if ui_state.combo_open && !ui_state.prev_combo_open {
+    // Resize when opening
+    if is_open && !was_open {
         let items = cameras.len() as f32;
         let item_h = 24.0;
         let padding = items * item_h + 10.0;
         let new_h = config.compact_size[1] + padding;
 
-        // dbg!("Here");
         crate::request_native_window_resize(&ui.ctx(), config.compact_size[0], new_h);
     }
-    // closed
-    else if !ui_state.combo_open && ui_state.prev_combo_open {
-        crate::request_native_window_resize(&ui.ctx(), config.compact_size[0], config.compact_size[1]);
+    // Resize back when closed
+    else if !is_open && was_open {
+        crate::request_native_window_resize(
+            &ui.ctx(),
+            config.compact_size[0],
+            config.compact_size[1],
+        );
     }
 
-    ui_state.prev_combo_open = ui_state.combo_open;
+    ui_state.prev_combo_open = is_open;
+
+    /*if app_state.selected_camera != old_selected {
+        dbg!("Camera changed to index {}", app_state.selected_camera);
+    }*/
 }
