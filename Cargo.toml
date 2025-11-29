@@ -9,6 +9,9 @@ egui = "0.28"
 global-hotkey = "0.6"
 nokhwa = { version = "0.10.10", features = ["input-native"] }
 image = "0.24"
+opencv = {version = "0.92.0", default-features = false, features = ["clang-runtime", "gapi", "imgcodecs", "imgproc", "videoio", "video", "highgui", "dnn"]}
+once_cell = "1.21.3"
+rust-embed = "8.0"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.48", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }

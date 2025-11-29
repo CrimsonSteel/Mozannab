@@ -1,1 +1,78 @@
+use opencv::{
+    core::{self, Mat, Point, Rect, Scalar, Size, Vector},
+    dnn::{self, Net},
+    highgui,
+    imgproc,
+    prelude::*,
+    videoio::{self, VideoCapture, VideoCaptureAPIs},
+};
+use std::collections::VecDeque;
+use std::path::Path;
+use std::time::Instant;
+
+use once_cell::sync::OnceCell;
+use std::sync::{Arc, Mutex};
+
 pub mod calibrator;
+pub mod videocapture;
+pub mod utils;
+pub mod model;
+
+
+struct PostureProcConfig {
+    face_proto: &'static str,
+    face_model: &'static str,
+
+    // Calibration settings
+    samples_needed: usize,
+    mad_filter_k: f64,
+
+    // Detection thresholds
+    face_conf_threshold: f32,
+
+    // Posture assessment
+    bad_posture_duration_secs: f64,
+    history_size: usize,
+    history_bad_threshold: f64,  // 0.6 = 60% of history must be bad
+    score_bad_threshold: f64,    // 0.5 = score > 0.5 means bad posture
+    score_good_threshold: f64,   // -0.1 = score < -0.1 means good posture
+}
+
+impl Default for PostureProcConfig {
+    fn default() -> Self {
+        Self {
+            // Model paths
+            face_proto: "models/deploy.prototxt",
+            face_model: "models/res10_300x300_ssd_iter_140000.caffemodel",
+            
+            // Calibration settings
+            samples_needed: 10,
+            mad_filter_k: 3.5,
+            
+            // Detection thresholds
+            face_conf_threshold: 0.5,
+            
+            // Posture assessment
+            bad_posture_duration_secs: 3.0,
+            history_size: 15,
+            history_bad_threshold: 0.6,
+            score_bad_threshold: 0.5,
+            score_good_threshold: -0.1,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct FaceData {
+    area: f64,
+    bbox: (i32, i32, i32, i32),
+    conf: f32,
+}
+
+#[derive(Debug, Clone)]
+pub struct CalibrationResult {
+    posture_good_baseline: f64,
+    posture_bad_baseline: f64,
+    posture_midpoint: f64
+}
+

@@ -53,6 +53,8 @@ pub struct AppState {
     pub is_calibrating: bool,
     pub calibration_state: CalibrationState,
     
+    // Calibration data
+    pub calibration_result: Option<crate::core::CalibrationResult>,
 }
 
 impl AppState { 
@@ -64,6 +66,7 @@ impl AppState {
             is_monitoring: false,
             is_calibrating: false,
             calibration_state: CalibrationState::CalibrationNone,
+            calibration_result: None,
         }
     }
 
@@ -76,6 +79,7 @@ impl AppState {
             is_monitoring: false,
             is_calibrating: false,
             calibration_state: CalibrationState::CalibrationNone,
+            calibration_result: None,
         }
     }
 }
@@ -340,9 +344,9 @@ impl CameraApp {
 
                 self.cmds_tx = Some(cmds_tx.clone());
                 self.events_rx = Some(events_rx);
-
+                let selected_camera = self.state.selected_camera;
                 let _ = std::thread::spawn(move || {
-                    crate::core::calibrator::opencv_posture_calibrate(events_tx, &cmds_rx);
+                    crate::core::calibrator::opencv_posture_calibrate(events_tx, &cmds_rx, selected_camera);
                 });
             }
 
@@ -411,9 +415,10 @@ impl CameraApp {
                 self.state.calibration_state = CalibrationState::CalibrationDone;
             }
 
-            events::AppEvent::CalibrationCompleted => {
+            events::AppEvent::CalibrationCompleted(calibration_result) => {
                 dbg!("Calibration Completed");
-
+                self.state.calibration_result = Some(calibration_result);
+                
                 // next state
                 self.state.calibration_state = CalibrationState::CalibrationDone;
                 self.state.is_calibrating = false;

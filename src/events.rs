@@ -6,7 +6,7 @@ pub enum AppEvent {
 
     CalibrationStarted,
     CalibrationProgress(f32),   
-    CalibrationCompleted,
+    CalibrationCompleted(super::core::CalibrationResult),
     CalibrationError(String),
 }
 
