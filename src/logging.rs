@@ -1,6 +1,7 @@
 use log::LevelFilter;
 use simplelog::*;
 use std::path::PathBuf;
+use std::fs::{self, OpenOptions};
 
 pub fn init_logger() {
     #[cfg(debug_assertions)]
