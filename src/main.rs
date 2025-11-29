@@ -148,5 +148,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     logging::rotate_logs_if_needed();
 
+    // Just to make sure config file is created at startup
+    let _ = core::read_check_interval_or_default();
     run_ui()
 }
