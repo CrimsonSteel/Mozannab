@@ -1,71 +1,67 @@
-<div dir="rtl">
+# Mozannab
 
-# مذنّب (Mozannab)
+Mozannab is a desktop posture monitoring app using Rust, egui, and OpenCV. It detects your posture via webcam, gives feedback, and helps you calibrate for better ergonomics. Designed for privacy, speed, and minimal distraction.
 
-مذنّب هو تطبيق سطح مكتب لمراقبة وضعية الجلوس باستخدام Rust و egui و OpenCV. يكتشف وضعية جلوسك عبر كاميرا الويب، ويقدم لك ملاحظات، ويساعدك على المعايرة للحصول على وضعية جلوس أفضل. مصمم للخصوصية والسرعة والحد الأدنى من التشتيت.
+## Installation
 
-## التثبيت
-
-1. **تثبيت Rust**: https://rustup.rs
-2. **تثبيت Cargo Make**: قم بتشغيل `cargo install cargo-make`
-3. **تثبيت OpenCV**: تحتاج إلى ملفات OpenCV 4.x DLLs (ويندوز) في مسار PATH الخاص بك. راجع وثائق `opencv` crate.
-4. **استنساخ المستودع**:
-```powershell
+1. **Install Rust**: https://rustup.rs
+2. **Install Cargo Make**: Run `cargo install cargo-make`
+3. **Install OpenCV**: You need OpenCV 4.x DLLs (Windows) in your PATH. See the `opencv` crate docs.
+4. **Clone the repo**:
+   ```powershell
    git clone https://github.com/CrimsonSteel/Mozannab.git
    cd Mozannab
-```
-5. **البناء والتشغيل**:
-```powershell
+   ```
+5. **Build and run**:
+   ```powershell
    cargo make run-release
-```
+   ```
 
-## الاستخدام
+## Usage
 
-- تشغيل التطبيق: `cargo make run-release`
-- اختر كاميرا الويب الخاصة بك من القائمة المنسدلة.
-- انقر على **معايرة (Calibrate)** واتبع التعليمات على الشاشة.
-- سيراقب التطبيق وضعية جلوسك ويعرض تحذيرات إذا كنت منحنيًا أو مائلًا.
+- Launch the app: `cargo make run-release`
+- Select your webcam from the dropdown.
+- Click **Calibrate** and follow the on-screen instructions.
+- The app will monitor your posture and show warnings if you slouch or lean.
 
-## المميزات
+## Features
 
-- كشف سريع لوضعية الجلوس باستخدام OpenCV DNN
-- معايرة مخصصة لوضعية الجلوس الأساسية
-- ملاحظات وتحذيرات في الوقت الفعلي
-- دعم اختصارات لوحة المفاتيح للإجراءات السريعة
-- واجهة بسيطة وخالية من التشتيت
-- تسجيل السجلات في ملف للتشخيص
+- Fast posture detection using OpenCV DNN
+- Calibration for personalized posture baseline
+- Real-time feedback and warnings
+- Hotkey support for quick actions
+- Minimal, distraction-free UI
+- Logging to file for diagnostics
 
-## كيفية البناء
+## How to Build
 
-- استخدم Cargo Make لبناء قابل للتكرار:
-```powershell
+- Use Cargo Make for reproducible builds:
+  ```powershell
   cargo make build-release
-```
-- الملفات التنفيذية موجودة في `target/release/`
+  ```
+- Binaries are in `target/release/`
 
-## الاختصارات الافتراضية
+## Default Shortcuts
 
-- **Alt+W**: تبديل المراقبة (افتراضي)
-- **Alt+Q**: بدء المعايرة (افتراضي)
-- **Ctrl+Q**: التقاط عينة المعايرة أثناء المعايرة (افتراضي)
+- **Alt+W**: Toggle monitoring (default)
+- **Alt+Q**: Start calibration (default)
+- **Ctrl+Q**: Capture calibration sample during calibration (default)
 
 ---
 
-## ملاحظات
+## Notes
 
-- يمكن تكوين اختصارات لوحة المفاتيح عبر ملف `hotkeys.json` الذي يتم إنشاؤه تحت `%APPDATA%/Mozannab` على ويندوز. الافتراضيات موضحة أعلاه.
-- فترة فحص الوضعية قابلة للتكوين عبر ملف `config.json` الذي يتم إنشاؤه تحت `%APPDATA%/Mozannab` على ويندوز. الافتراضي هو 60000 ميلي ثانية
+- Hotkeys are configurable via a `hotkeys.json` file created under `%APPDATA%/Mozannab` on Windows. The defaults are shown above.
+- The posture check interval is configurable via a `config.json` file created under `%APPDATA%/Mozannab` on Windows. The default is 60000 ms
 
-## الملفات المهمة
+## Important files
 
-- `src/camera_app.rs` — واجهة المستخدم الرئيسية وربط التطبيق.
-- `src/core/calibrator.rs` — منطق المعايرة.
-- `src/core/pose.rs` — منطق تقييم الوضعية.
-- `src/hotkey.rs` — تكوين وتسجيل الاختصارات.
+- `src/camera_app.rs` — main UI and app glue.
+- `src/core/calibrator.rs` — calibration logic.
+- `src/core/pose.rs` — pose assessment logic.
+- `src/hotkey.rs` — hotkey config and registration.
 
-## المهام المستقبلية:
-- إضافة المزيد من معالجة الأخطاء لفشل التقاط الوضعية
-- إضافة واجهة مستخدم لتغيير إعدادات التطبيق
-- الاختبار على Linux و MacOS. من المتوقع وجود مشاكل في MacOS مع الاختصارات بسبب الأذونات
-
-</div>
+## TODOs:
+- Add more error handling for pose capture failure
+- Add a  UI for changing app settings
+- Test on Linux & MacOS. MacOS is expected to have problems with shortcuts due to permissions
