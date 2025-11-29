@@ -18,7 +18,9 @@ pub fn show(
         (colors.button_primary, colors.button_primary_hover)
     };
 
-    ui.add_enabled_ui(!app_state.is_calibrating, |ui| {
+    let enabled = !app_state.is_calibrating && app_state.calibration_result.is_some();
+
+    ui.add_enabled_ui(enabled, |ui| {
         
         let btn = egui::Button::new(
             egui::RichText::new(button_text)
