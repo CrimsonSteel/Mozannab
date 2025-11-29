@@ -70,9 +70,6 @@ pub fn batch_inference(inputs: &Vec<Mat>) -> opencv::Result<Vec<super::FaceData>
     // resize and prepare blob
     let resized_inputs: core::Vector<Mat> = inputs.iter().map(|img| {
         let resized = super::utils::resize_image(img, core::Size::new(300, 300)).unwrap();
-
-        super::utils::show_image("Resized Input", &resized, 0).unwrap();
-
         resized
     }).collect();
 
