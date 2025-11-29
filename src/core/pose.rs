@@ -102,18 +102,18 @@ pub fn assess_posture(
 }
 
 fn is_stop_requested(rx: &Receiver<CalibrationCommand>) -> bool {
-    let Some(cmd) = rx.try_recv().ok() else {
-        return false;
-    };
-
-    match cmd {
-        CalibrationCommand::TrackStop => {
-            true
-        }
-        _ => {
-            false
+    while let Ok(cmd) = rx.try_recv() {
+        match cmd {
+            CalibrationCommand::TrackStop => {
+                return true;
+            }
+            _ => {
+                // ignore other commands here
+            }
         }
     }
+
+    false
 }
 
 pub fn opencv_posture_loop(
@@ -126,10 +126,18 @@ pub fn opencv_posture_loop(
 
     let mut last_check_time = std::time::Instant::now();
 
+    log::info!("Posture worker starting for camera {selected_camera}");
+
+    while let Ok(cmd) = rx.try_recv() {
+        log::debug!("Draining pre-start command: {cmd:?}");
+    }
+
     tx.send(AppEvent::PostureAssessmentStarted).ok();
+    log::info!("Posture assessment started");
 
     loop {
         if is_stop_requested(rx) {
+            log::info!("Posture worker stop requested");
             break;
         }
 
@@ -142,16 +150,22 @@ pub fn opencv_posture_loop(
 
         // Perform posture assessment step
         let Ok(mut cam) = super::videocapture::open_camera(selected_camera, None) else {
+            log::error!("Posture: failed to open camera {selected_camera}");
             let _ = tx.send(AppEvent::PostureAssessmentError(
                 "Failed to open camera for posture assessment.".to_string(),
             ));
             return;
         };
+        log::debug!("Posture: camera {selected_camera} opened");
 
-        let mut frames: Vec<opencv::core::Mat> = Vec::new();
+        let mut frames: Vec<opencv::core::Mat> =
+            Vec::with_capacity(pose_proc_configs.history_size);
 
         for _ in 0..pose_proc_configs.history_size {
             let Ok(frame) = super::videocapture::read_frame(&mut cam, true) else {
+                log::error!(
+                    "Posture: failed to read frame from camera {selected_camera}"
+                );
                 let _ = tx.send(AppEvent::PostureAssessmentError(
                     "Failed to read frame from camera.".to_string(),
                 ));
@@ -172,7 +186,7 @@ pub fn opencv_posture_loop(
         };
 
         let assessment = assess_posture(&posture_results, &calibration_result, &pose_proc_configs);
-        println!(
+        log::debug!(
             "Posture Assessment: score={:.3}, confidence={:.3}, class={:?}, severity={:.3}",
             assessment.raw_score,
             assessment.confidence,
@@ -189,6 +203,16 @@ pub fn opencv_posture_loop(
                 } else {
                     "Slight bad posture."
                 };
+
+                // Avoid spamming info for small issues
+                if assessment.severity > 0.7 {
+                    log::warn!("{} (severity={:.2})", severity_msg, assessment.severity);
+                } else if assessment.severity > 0.4 {
+                    log::info!("{} (severity={:.2})", severity_msg, assessment.severity);
+                } else {
+                    log::debug!("{} (severity={:.2})", severity_msg, assessment.severity);
+                }
+
                 let _ = tx.send(AppEvent::PostureAssessmentWarning((
                     PostureClass::Bad,
                     assessment.severity,
@@ -201,9 +225,13 @@ pub fn opencv_posture_loop(
         let _ = tx.send(AppEvent::PostureAssessmentScore(assessment.raw_score));
 
         let _ = super::videocapture::close_camera(&mut cam);
+        log::debug!("Posture: camera {selected_camera} closed");
 
         last_check_time = std::time::Instant::now();
     }
 
+    log::info!(
+        "Posture assessment worker completed for camera {selected_camera}"
+    );
     tx.send(AppEvent::PostureAssessmentCompleted).ok();
 }

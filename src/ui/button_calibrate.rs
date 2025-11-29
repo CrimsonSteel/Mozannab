@@ -29,6 +29,7 @@ pub fn show(
         let response = ui.add_sized(btn_size, btn);
 
         if response.clicked() {
+            log::info!("Calibrate button clicked; toggling calibration state");
             exec_clicked(ui_state, app_state);
         }
     });

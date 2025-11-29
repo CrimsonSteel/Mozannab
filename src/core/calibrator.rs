@@ -25,6 +25,7 @@ pub fn opencv_posture_calibrate(
     rx: &Receiver<CalibrationCommand>,
     selected_camera: i32,
 ) {
+    log::info!("Calibration worker starting for camera {selected_camera}");
     let _ = tx.send(AppEvent::CalibrationStarted);
 
     let pose_proc_configs = super::PostureProcConfig::default();
@@ -32,11 +33,13 @@ pub fn opencv_posture_calibrate(
     // opening the camera
 
     let Ok(mut cam) = super::videocapture::open_camera(selected_camera, None) else {
+        log::error!("Calibration: failed to open camera {selected_camera}");
         let _ = tx.send(AppEvent::CalibrationError(
             "Failed to open camera for calibration.".to_string(),
         ));
         return;
     };
+    log::debug!("Calibration: camera {selected_camera} opened");
 
     // collecting good pose samples
 
@@ -55,14 +58,22 @@ pub fn opencv_posture_calibrate(
 
         let progress =
             (good_frames.len() as f32) / (pose_proc_configs.calibration_samples_needed as f32);
+
+        log::debug!(
+            "Calibration: collected good sample {}/{}",
+            good_frames.len(),
+            pose_proc_configs.calibration_samples_needed
+        );
         let _ = tx.send(AppEvent::CalibrationProgress(progress));
     }
 
+    log::info!("Calibration: good-pose sampling finished");
     let _ = tx.send(AppEvent::CalibrationGoodPoseFinished);
 
     // Wait for proceed signal
     let proceed = wait_for_calibration_proceed(rx);
     if !proceed {
+        log::info!("Calibration cancelled by user before bad-pose sampling");
         let _ = tx.send(AppEvent::CalibrationError(
             "Calibration cancelled by user.".to_string(),
         ));
@@ -87,6 +98,11 @@ pub fn opencv_posture_calibrate(
 
         let progress =
             (bad_frames.len() as f32) / (pose_proc_configs.calibration_samples_needed as f32);
+        log::debug!(
+            "Calibration: collected bad sample {}/{}",
+            bad_frames.len(),
+            pose_proc_configs.calibration_samples_needed
+        );
         let _ = tx.send(AppEvent::CalibrationProgress(progress));
     }
 
@@ -95,6 +111,7 @@ pub fn opencv_posture_calibrate(
     // Batched face detections for both good and bad frames
 
     let Ok(good_detections) = super::model::batch_inference(&good_frames) else {
+        log::error!("Calibration: face detection failed on good frames");
         let _ = tx.send(AppEvent::CalibrationError(
             "Failed to perform face detection during calibration.".to_string(),
         ));
@@ -103,6 +120,7 @@ pub fn opencv_posture_calibrate(
     };
 
     let Ok(bad_detections) = super::model::batch_inference(&bad_frames) else {
+        log::error!("Calibration: face detection failed on bad frames");
         let _ = tx.send(AppEvent::CalibrationError(
             "Failed to perform face detection during calibration.".to_string(),
         ));
@@ -153,5 +171,6 @@ pub fn opencv_posture_calibrate(
         calibration_result.posture_midpoint
     );*/
 
+    log::info!("Calibration completed successfully");
     let _ = tx.send(AppEvent::CalibrationCompleted(calibration_result));
 }

@@ -66,4 +66,10 @@ pub fn exec_clicked(
     app_state.is_monitoring = !app_state.is_monitoring;
 
     ui_state.combo_enabled = !app_state.is_monitoring;
+
+    if app_state.is_monitoring {
+        log::info!("Monitoring requested: start");
+    } else {
+        log::info!("Monitoring requested: stop");
+    }
 }
