@@ -250,7 +250,7 @@ impl CameraApp {
                         ui.centered_and_justified(|ui| {
                             ui.add(
                                 egui::Label::new(
-                                    egui::RichText::new("Bad pose detected! Please correct your posture.")
+                                    egui::RichText::new("Please correct your posture.")
                                         .color(self.theme.panel_bg)
                                         .size(30.0)
                                         .strong()
@@ -312,8 +312,8 @@ impl CameraApp {
 
                 if self.state.is_monitoring && self.ui_state.bad_pose_warning_shown {
                     if let Some(open_time) = self.ui_state.open_time {
-                        // Close after 5 seconds
-                        if open_time.elapsed().as_secs() >= 5 {
+                        // Close after 6 seconds
+                        if open_time.elapsed().as_secs() >= 6 {
                             self.ui_state.bad_pose_warning_shown = false;
                             self.ui_state.open_time = None;
                         }
