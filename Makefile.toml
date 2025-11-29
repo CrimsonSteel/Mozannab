@@ -1,0 +1,59 @@
+[tasks.format]
+command = "cargo"
+args = ["fmt", "--all"]
+
+[tasks.format-check]
+command = "cargo"
+args = ["fmt", "--all", "--", "--check"]
+
+[tasks.clippy]
+command = "cargo"
+args = ["clippy", "--all-targets", "--all-features", "--", "-D", "warnings"]
+
+[tasks.clippy-fix]
+command = "cargo"
+args = ["clippy", "--fix", "--allow-dirty", "--allow-staged"]
+
+[tasks.check]
+command = "cargo"
+args = ["check", "--all-targets", "--all-features"]
+
+[tasks.build]
+command = "cargo"
+args = ["build"]
+
+[tasks.build-release]
+command = "cargo"
+args = ["build", "--release"]
+
+[tasks.run]
+command = "cargo"
+args = ["run"]
+
+[tasks.run-release]
+command = "cargo"
+args = ["run", "--release"]
+
+[tasks.clean]
+command = "cargo"
+args = ["clean"]
+
+[tasks.fix]
+dependencies = [
+    "format",
+    "clippy-fix"
+]
+
+[tasks.ci]
+dependencies = [
+    "format-check",
+    "clippy",
+    "check",
+    "test",
+    "build-release"
+]
+
+[tasks.bloat]
+install_crate = "cargo-bloat"
+command = "cargo"
+args = ["bloat", "--release"]
