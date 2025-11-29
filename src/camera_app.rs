@@ -213,9 +213,10 @@ impl CameraApp {
                                 )
                                 .wrap(),
                             );
-
+                            
+                            let shortcut = self.hotkey_data.as_ref().unwrap().calibrate_capture_str.clone();
                             ui.add(egui::Label::new(
-                                egui::RichText::new("Ctrl + Q").size(40.0).strong().color(
+                                egui::RichText::new(shortcut).size(40.0).strong().color(
                                     if good_bad {
                                         self.theme.button_recording
                                     } else {
