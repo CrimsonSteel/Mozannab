@@ -24,9 +24,10 @@ struct PostureProcConfig {
     face_model: &'static str,
 
     // Calibration settings
-    samples_needed: usize,
+    calibration_samples_needed: usize,
     mad_filter_k: f64,
     
+    // Posture assessment settings
     check_interval_ms: u64,
     check_interval_jitter_ms: u64,
 
@@ -50,9 +51,10 @@ impl Default for PostureProcConfig {
             face_model: "res10_300x300_ssd_iter_140000.caffemodel",
             
             // Calibration settings
-            samples_needed: 10,
+            calibration_samples_needed: 10,
             mad_filter_k: 3.5,
             
+            // Posture assessment interval
             check_interval_ms: 2000,
             check_interval_jitter_ms: 500,
 

@@ -456,6 +456,20 @@ impl CameraApp {
             events::AppEvent::PostureAssessmentCompleted => {
                 dbg!("Posture Assessment Completed");
             }
+
+            events::AppEvent::PostureAssessmentWarning(warning) => {
+                let (class, severity, msg) = warning;
+                dbg!("Posture Assessment Warning: {}", msg);
+            }
+
+            events::AppEvent::PostureAssessmentError(msg) => {
+                dbg!("Posture Assessment Error: {}", msg);
+            }
+
+            events::AppEvent::PostureAssessmentScore(score) => {
+                dbg!("Posture Assessment Score: {}", score);
+            }
+
             _ => {}
         }
         

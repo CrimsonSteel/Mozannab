@@ -11,7 +11,9 @@ pub enum AppEvent {
 
     PostureAssessmentStarted,
     PostureAssessmentCompleted,
-
+    PostureAssessmentError(String),
+    PostureAssessmentWarning((crate::core::pose::PostureClass, f64, String)), // class, severity, and message
+    PostureAssessmentScore(f64),
 }
 
 

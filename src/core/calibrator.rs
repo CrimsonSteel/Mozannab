@@ -38,7 +38,7 @@ pub fn opencv_posture_calibrate(tx: Sender<AppEvent>, rx: &Receiver<CalibrationC
 
     let mut good_frames = Vec::new();
 
-    for _ in 0..pose_proc_configs.samples_needed {
+    for _ in 0..pose_proc_configs.calibration_samples_needed {
         std::thread::sleep(std::time::Duration::from_millis(100));
         let Ok(frame) = super::videocapture::read_frame(&mut cam, true) else {
             let _ = tx.send(AppEvent::CalibrationError("Failed to read frame from camera.".to_string()));
@@ -47,7 +47,7 @@ pub fn opencv_posture_calibrate(tx: Sender<AppEvent>, rx: &Receiver<CalibrationC
         };
         good_frames.push(frame);
 
-        let progress = (good_frames.len() as f32) / (pose_proc_configs.samples_needed as f32);
+        let progress = (good_frames.len() as f32) / (pose_proc_configs.calibration_samples_needed as f32);
         let _ = tx.send(AppEvent::CalibrationProgress(progress));
     }
 
@@ -66,7 +66,7 @@ pub fn opencv_posture_calibrate(tx: Sender<AppEvent>, rx: &Receiver<CalibrationC
 
     let mut bad_frames = Vec::new();
 
-    for _ in 0..pose_proc_configs.samples_needed {
+    for _ in 0..pose_proc_configs.calibration_samples_needed {
         std::thread::sleep(std::time::Duration::from_millis(100));
         let Ok(frame) = super::videocapture::read_frame(&mut cam, true) else {
             let _ = tx.send(AppEvent::CalibrationError("Failed to read frame from camera.".to_string()));
@@ -75,7 +75,7 @@ pub fn opencv_posture_calibrate(tx: Sender<AppEvent>, rx: &Receiver<CalibrationC
         };
         bad_frames.push(frame);
 
-        let progress = (bad_frames.len() as f32) / (pose_proc_configs.samples_needed as f32);
+        let progress = (bad_frames.len() as f32) / (pose_proc_configs.calibration_samples_needed as f32);
         let _ = tx.send(AppEvent::CalibrationProgress(progress));
     }
 
@@ -96,9 +96,16 @@ pub fn opencv_posture_calibrate(tx: Sender<AppEvent>, rx: &Receiver<CalibrationC
         return;
     };
 
-    // TODO: Handle cases where few faces are detected
-    let good_areas = good_detections.iter().map(|d| d.area).collect::<Vec<f64>>();
-    let bad_areas = bad_detections.iter().map(|d| d.area).collect::<Vec<f64>>();
+    // TODO: Handle cases where few or no faces were detected
+
+    let good_areas = good_detections.iter().filter_map(|d| {
+        if d.is_some() { Some(d.as_ref().unwrap().area) } else { None }
+    }).collect::<Vec<f64>>();
+
+    let bad_areas = bad_detections.iter().filter_map(|d| {
+        if d.is_some() { Some(d.as_ref().unwrap().area) } else { None }
+    }).collect::<Vec<f64>>();
+
 
     // Using MAD-filter to reject outliers
     let good_median_area = super::utils::mad_filter_median(&good_areas, pose_proc_configs.mad_filter_k);
@@ -110,6 +117,12 @@ pub fn opencv_posture_calibrate(tx: Sender<AppEvent>, rx: &Receiver<CalibrationC
         posture_bad_baseline: bad_median_area,
         posture_midpoint: midpoint,
     };
+
+    dbg!("Calibration Result: Good Baseline: {}, Bad Baseline: {}, Midpoint: {}",
+        calibration_result.posture_good_baseline,
+        calibration_result.posture_bad_baseline,
+        calibration_result.posture_midpoint
+    );
 
     let _ = tx.send(AppEvent::CalibrationCompleted(calibration_result));
 

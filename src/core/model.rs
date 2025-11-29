@@ -58,7 +58,7 @@ pub fn get_or_init_face_net(config: &super::PostureProcConfig) -> opencv::Result
     }
 }
 
-pub fn batch_inference(inputs: &Vec<Mat>) -> opencv::Result<Vec<super::FaceData>> {
+pub fn batch_inference(inputs: &Vec<Mat>) -> opencv::Result<Vec<Option<super::FaceData>>> {
     
     let net_guard = get_or_init_face_net(&super::PostureProcConfig::default())?;
     let net_locked = net_guard.lock();
@@ -155,7 +155,5 @@ pub fn batch_inference(inputs: &Vec<Mat>) -> opencv::Result<Vec<super::FaceData>
         }
     }
 
-    let results: Vec<super::FaceData> = batch_results.into_iter().filter_map(|x| x).collect();
-
-    Ok(results)
+    Ok(batch_results)
 }
