@@ -1,10 +1,9 @@
-use std::sync::mpsc::{self, Receiver, Sender};
-use std::thread::{self, JoinHandle};
 use global_hotkey::{
-    GlobalHotKeyManager,
-    hotkey::{Code, Modifiers, HotKey},
-    GlobalHotKeyEvent,
+    GlobalHotKeyEvent, GlobalHotKeyManager,
+    hotkey::{Code, HotKey, Modifiers},
 };
+use std::sync::mpsc::{self, Receiver};
+use std::thread::{self, JoinHandle};
 
 pub struct HotkeyData {
     pub manager: GlobalHotKeyManager,
@@ -16,13 +15,11 @@ pub struct HotkeyData {
     pub calibrate_capture_id: u32,
 }
 
-
 pub fn setup_hotkeys() -> Option<HotkeyData> {
-
     let manager = match GlobalHotKeyManager::new() {
         Ok(m) => m,
         Err(e) => {
-            eprintln!("Failed to create GlobalHotKeyManager: {:?}", e);
+            eprintln!("Failed to create GlobalHotKeyManager: {e:?}");
             return None;
         }
     };
@@ -32,22 +29,21 @@ pub fn setup_hotkeys() -> Option<HotkeyData> {
     let toggle_key = HotKey::new(Some(Modifiers::ALT), Code::KeyW);
     let toggle_id = toggle_key.id();
     if let Err(e) = manager.register(toggle_key) {
-        eprintln!("Warning: Failed to register Alt+W hotkey: {:?}", e);
+        eprintln!("Warning: Failed to register Alt+W hotkey: {e:?}");
         return None;
     }
 
     let calibrate_key = HotKey::new(Some(Modifiers::ALT), Code::KeyQ);
     let calibrate_id = calibrate_key.id();
     if let Err(e) = manager.register(calibrate_key) {
-        eprintln!("Warning: Failed to register Alt+Q hotkey: {:?}", e);
+        eprintln!("Warning: Failed to register Alt+Q hotkey: {e:?}");
         return None;
     }
-
 
     let calibrate_capture_key = HotKey::new(Some(Modifiers::CONTROL), Code::KeyQ);
     let calibrate_capture_id = calibrate_capture_key.id();
     if let Err(e) = manager.register(calibrate_capture_key) {
-        eprintln!("Warning: Failed to register Ctrl+Q hotkey: {:?}", e);
+        eprintln!("Warning: Failed to register Ctrl+Q hotkey: {e:?}");
         return None;
     }
 
@@ -65,15 +61,12 @@ pub fn setup_hotkeys() -> Option<HotkeyData> {
         }
     });
 
-
-    Some(
-        HotkeyData {
-            manager,
-            handle,
-            receiver: rx,
-            toggle_monitoring_id: toggle_id,
-            calibrate_id: calibrate_id,
-            calibrate_capture_id: calibrate_capture_id,
-        }
-    )
+    Some(HotkeyData {
+        manager,
+        handle,
+        receiver: rx,
+        toggle_monitoring_id: toggle_id,
+        calibrate_id,
+        calibrate_capture_id,
+    })
 }

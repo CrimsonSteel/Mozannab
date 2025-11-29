@@ -30,7 +30,6 @@ pub struct ThemeColors {
 
 impl ThemeColors {
     pub fn loom() -> ThemeColors {
-
         ThemeColors {
             window_fill: egui::Color32::from_rgba_unmultiplied(0, 0, 0, 0),
             // TODO: remove this after debugging
@@ -59,5 +58,5 @@ impl ThemeColors {
             selection_bg: egui::Color32::from_rgb(99, 102, 241),
             selection_stroke: egui::Color32::from_rgb(99, 102, 241),
         }
-}
+    }
 }

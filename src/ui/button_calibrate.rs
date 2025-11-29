@@ -1,5 +1,5 @@
-use eframe::egui;
 use super::styles::ThemeColors;
+use eframe::egui;
 
 pub fn show(
     ui: &mut egui::Ui,
@@ -8,21 +8,22 @@ pub fn show(
     colors: &ThemeColors,
     config: &crate::config::AppConfig,
 ) {
-
     ui.add_enabled_ui(!app_state.is_monitoring, |ui| {
-    
         let is_calibrating = app_state.is_calibrating;
-        let button_text = if is_calibrating { "Calibrating.." } else { "Calibrate" };
+        let button_text = if is_calibrating {
+            "Calibrating.."
+        } else {
+            "Calibrate"
+        };
 
         let btn = egui::Button::new(
             egui::RichText::new(button_text)
                 .size(14.0)
-                .color(colors.text_secondary)
+                .color(colors.text_secondary),
         )
         .fill(colors.button_secondary_fill)
         .rounding(10.0)
         .stroke(egui::Stroke::new(1.0, colors.button_secondary_stroke));
-
 
         let btn_size = [config.button_width, config.button_height];
         let response = ui.add_sized(btn_size, btn);
@@ -30,7 +31,6 @@ pub fn show(
         if response.clicked() {
             exec_clicked(ui_state, app_state);
         }
-
     });
 }
 

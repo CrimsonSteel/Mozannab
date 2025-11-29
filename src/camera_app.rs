@@ -1,14 +1,12 @@
-use egui;
-use eframe;
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender};
 use std::time::Instant;
 
-use crate::config::AppConfig;
 use crate::cameras;
+use crate::commands;
+use crate::config::AppConfig;
+use crate::events;
 use crate::ui;
 use crate::ui::styles::ThemeColors;
-use crate::events;
-use crate::commands;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum CalibrationState {
@@ -45,7 +43,6 @@ impl UiState {
             open_time: None,
         }
     }
-    
 }
 
 pub struct AppState {
@@ -56,12 +53,12 @@ pub struct AppState {
     pub is_monitoring: bool,
     pub is_calibrating: bool,
     pub calibration_state: CalibrationState,
-    
+
     // Calibration data
     pub calibration_result: Option<crate::core::CalibrationResult>,
 }
 
-impl AppState { 
+impl AppState {
     pub fn new() -> Self {
         Self {
             // placeholders for now for now
@@ -95,7 +92,7 @@ pub struct CameraApp {
     theme: ThemeColors,
     // For handling hotkeys
     hotkey_data: Option<crate::hotkey::HotkeyData>,
-    
+
     // For getting events from other threads
     events_rx: Option<Receiver<events::AppEvent>>,
 
@@ -105,42 +102,64 @@ pub struct CameraApp {
 
 impl CameraApp {
     pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
-
         let hotkey_data = crate::hotkey::setup_hotkeys();
         let detected_cameras = match cameras::enumerate_cameras() {
             Ok(cameras) => cameras,
             Err(e) => {
-                eprintln!("Error enumerating cameras: {}", e);
+                eprintln!("Error enumerating cameras: {e}");
                 vec![(0, "No cameras found".to_string())]
             }
         };
-        
+
         Self {
             state: AppState::new_with_camera_list(detected_cameras),
             ui_state: UiState::new(),
             config: AppConfig::default(),
             theme: ThemeColors::loom(),
-        
-            hotkey_data: hotkey_data,
+
+            hotkey_data,
 
             events_rx: None,
             cmds_tx: None,
         }
     }
 
-    fn render_immediate_calibration_step1(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2], progress: f32) {
+    fn render_immediate_calibration_step1(
+        &mut self,
+        ctx: &egui::Context,
+        position: [f32; 2],
+        viewport_size: [f32; 2],
+        progress: f32,
+    ) {
         self.render_immediate_calibration_step(ctx, position, viewport_size, true, progress);
     }
 
-    fn render_immediate_calibration_step2(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2], progress: f32) {
+    fn render_immediate_calibration_step2(
+        &mut self,
+        ctx: &egui::Context,
+        position: [f32; 2],
+        viewport_size: [f32; 2],
+        progress: f32,
+    ) {
         self.render_immediate_calibration_step(ctx, position, viewport_size, false, progress);
     }
 
-    fn render_immediate_calibration_step(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2], good_bad: bool, progress: f32) {
+    fn render_immediate_calibration_step(
+        &mut self,
+        ctx: &egui::Context,
+        position: [f32; 2],
+        viewport_size: [f32; 2],
+        good_bad: bool,
+        progress: f32,
+    ) {
         ctx.show_viewport_immediate(
             egui::ViewportId::from_hash_of("immediate_viewport"),
             egui::ViewportBuilder::default()
-                .with_title(if good_bad { "Good Posture Calibration" } else { "Bad Posture Calibration" })
+                .with_title(if good_bad {
+                    "Good Posture Calibration"
+                } else {
+                    "Bad Posture Calibration"
+                })
                 .with_inner_size(viewport_size)
                 .with_decorations(false)
                 .with_transparent(true)
@@ -150,49 +169,71 @@ impl CameraApp {
                 egui::CentralPanel::default()
                     .frame(
                         egui::Frame::none()
-                            .fill(if good_bad { self.theme.panel_bg } else { self.theme.button_recording })
+                            .fill(if good_bad {
+                                self.theme.panel_bg
+                            } else {
+                                self.theme.button_recording
+                            })
                             .inner_margin(egui::Margin::same(14.0))
-                            .stroke(egui::Stroke::new(6.0 + progress * 16.0, if good_bad { self.theme.button_recording } else { self.theme.panel_bg }))
+                            .stroke(egui::Stroke::new(
+                                6.0 + progress * 16.0,
+                                if good_bad {
+                                    self.theme.button_recording
+                                } else {
+                                    self.theme.panel_bg
+                                },
+                            )),
                     )
                     .show(ctx, |ui| {
                         ui.disable();
-                        
+
                         // Get available space
                         let available_height = ui.available_height();
-                        
+
                         ui.vertical_centered(|ui| {
                             // Add space to push content to vertical center
                             ui.add_space(available_height / 2.0 - 50.0); // Adjust offset as needed
-                            
+
                             ui.spacing_mut().item_spacing.y = 18.0;
-                            
+
                             ui.add(
                                 egui::Label::new(
-                                    egui::RichText::new(
-                                        format!("Please sit up in {} posture. When you're ready, press:", if good_bad { "good" } else { "bad" })
-                                    )
+                                    egui::RichText::new(format!(
+                                        "Please sit up in {} posture. When you're ready, press:",
+                                        if good_bad { "good" } else { "bad" }
+                                    ))
                                     .size(20.0)
                                     .strong()
-                                    .color(if !good_bad { self.theme.panel_bg } else { self.theme.text_primary }),
+                                    .color(if !good_bad {
+                                        self.theme.panel_bg
+                                    } else {
+                                        self.theme.text_primary
+                                    }),
                                 )
-                                .wrap()
+                                .wrap(),
                             );
-                            
-                            ui.add(
-                                egui::Label::new(
-                                    egui::RichText::new("Ctrl + Q")
-                                        .size(40.0)
-                                        .strong()
-                                        .color(if good_bad { self.theme.button_recording } else { self.theme.panel_bg }),
-                                )
-                            );
+
+                            ui.add(egui::Label::new(
+                                egui::RichText::new("Ctrl + Q").size(40.0).strong().color(
+                                    if good_bad {
+                                        self.theme.button_recording
+                                    } else {
+                                        self.theme.panel_bg
+                                    },
+                                ),
+                            ));
                         });
                     });
             },
         );
     }
 
-    fn render_immediate_calibration_status(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2]) {
+    fn render_immediate_calibration_status(
+        &mut self,
+        ctx: &egui::Context,
+        position: [f32; 2],
+        viewport_size: [f32; 2],
+    ) {
         ctx.show_viewport_immediate(
             egui::ViewportId::from_hash_of("immediate_viewport"),
             egui::ViewportBuilder::default()
@@ -208,26 +249,29 @@ impl CameraApp {
                         egui::Frame::none()
                             .fill(self.theme.button_primary)
                             .inner_margin(egui::Margin::same(34.0))
-                            .stroke(egui::Stroke::new(6.0, self.theme.button_primary_hover))
+                            .stroke(egui::Stroke::new(6.0, self.theme.button_primary_hover)),
                     )
                     .show(ctx, |ui| {
                         // Center everything vertically and horizontally
                         ui.centered_and_justified(|ui| {
-                            ui.add(
-                                egui::Label::new(
-                                    egui::RichText::new("Calibration Done!")
-                                        .color(self.theme.panel_bg)
-                                        .size(30.0)
-                                        .strong()
-                                )
-                            );
+                            ui.add(egui::Label::new(
+                                egui::RichText::new("Calibration Done!")
+                                    .color(self.theme.panel_bg)
+                                    .size(30.0)
+                                    .strong(),
+                            ));
                         });
                     });
             },
         );
     }
 
-    fn render_immediate_pose_status(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2]) {
+    fn render_immediate_pose_status(
+        &mut self,
+        ctx: &egui::Context,
+        position: [f32; 2],
+        viewport_size: [f32; 2],
+    ) {
         ctx.show_viewport_immediate(
             egui::ViewportId::from_hash_of("immediate_viewport"),
             egui::ViewportBuilder::default()
@@ -243,19 +287,17 @@ impl CameraApp {
                         egui::Frame::none()
                             .fill(self.theme.button_recording_hover)
                             .inner_margin(egui::Margin::same(34.0))
-                            .stroke(egui::Stroke::new(6.0, self.theme.button_recording))
+                            .stroke(egui::Stroke::new(6.0, self.theme.button_recording)),
                     )
                     .show(ctx, |ui| {
                         // Center everything vertically and horizontally
                         ui.centered_and_justified(|ui| {
-                            ui.add(
-                                egui::Label::new(
-                                    egui::RichText::new("Please correct your posture.")
-                                        .color(self.theme.panel_bg)
-                                        .size(30.0)
-                                        .strong()
-                                )
-                            );
+                            ui.add(egui::Label::new(
+                                egui::RichText::new("Please correct your posture.")
+                                    .color(self.theme.panel_bg)
+                                    .size(30.0)
+                                    .strong(),
+                            ));
                         });
                     });
             },
@@ -270,43 +312,53 @@ impl CameraApp {
             .show(ctx, |ui| {
                 // Main Area
                 egui::Area::new(egui::Id::new("main_ui"))
-                    .fixed_pos(egui::pos2(0.0, 0.0))    
+                    .fixed_pos(egui::pos2(0.0, 0.0))
                     .show(ctx, |ui| {
                         self.render_main_panel(ui);
                     });
-                
+
                 let viewport_w = 340.0;
                 let viewport_h = 250.0;
-                
+
                 let viewport_info = ctx.input(|i| i.viewport().clone());
                 let screen_rect = viewport_info.monitor_size.unwrap_or_default();
 
                 let pos_x = screen_rect.x - viewport_w;
                 let pos_y = screen_rect.y - viewport_h;
-                let position = [pos_x/2.0, pos_y/2.0];
-                
+                let position = [pos_x / 2.0, pos_y / 2.0];
 
-                if self.ui_state.calibration_popup_step1_opened || self.ui_state.calibration_popup_step2_opened || self.state.calibration_state == CalibrationState::CalibrationDone {
-  
+                if self.ui_state.calibration_popup_step1_opened
+                    || self.ui_state.calibration_popup_step2_opened
+                    || self.state.calibration_state == CalibrationState::CalibrationDone
+                {
                     if self.ui_state.calibration_popup_step1_opened {
-                        self.render_immediate_calibration_step1(ctx, position, [viewport_w, viewport_h], self.ui_state.step_progress);
-                    }
-                    else if self.ui_state.calibration_popup_step2_opened {
-                        self.render_immediate_calibration_step2(ctx, position, [viewport_w, viewport_h], self.ui_state.step_progress);
-                    }
-
-                    else if self.state.calibration_state == CalibrationState::CalibrationDone {
+                        self.render_immediate_calibration_step1(
+                            ctx,
+                            position,
+                            [viewport_w, viewport_h],
+                            self.ui_state.step_progress,
+                        );
+                    } else if self.ui_state.calibration_popup_step2_opened {
+                        self.render_immediate_calibration_step2(
+                            ctx,
+                            position,
+                            [viewport_w, viewport_h],
+                            self.ui_state.step_progress,
+                        );
+                    } else if self.state.calibration_state == CalibrationState::CalibrationDone {
                         if let Some(open_time) = self.ui_state.open_time {
                             // Close after 3 seconds
                             if open_time.elapsed().as_secs() >= 3 {
                                 self.state.calibration_state = CalibrationState::CalibrationNone;
                                 self.ui_state.open_time = None;
-                            }
-                            else {
-                                self.render_immediate_calibration_status(ctx, position, [viewport_w, viewport_h]);
+                            } else {
+                                self.render_immediate_calibration_status(
+                                    ctx,
+                                    position,
+                                    [viewport_w, viewport_h],
+                                );
                             }
                         }
-                        
                     }
                 }
 
@@ -316,14 +368,15 @@ impl CameraApp {
                         if open_time.elapsed().as_secs() >= 6 {
                             self.ui_state.bad_pose_warning_shown = false;
                             self.ui_state.open_time = None;
-                        }
-                        else {
-                            self.render_immediate_pose_status(ctx, position, [viewport_w, viewport_h]);
+                        } else {
+                            self.render_immediate_pose_status(
+                                ctx,
+                                position,
+                                [viewport_w, viewport_h],
+                            );
                         }
                     }
                 }
-                
-
             });
     }
 
@@ -347,35 +400,48 @@ impl CameraApp {
 
     // Render cameras combo box and buttons (start/stop and calibrate)
     fn render_controls(&mut self, ui: &mut egui::Ui) {
-
         let mut monitor_clicked = false;
 
         ui.horizontal(|ui| {
-
             ui.spacing_mut().item_spacing.x = 10.0;
 
             // Camera combobox
-            ui::combo_camera::show(ui, &mut self.ui_state, &mut self.state, &self.theme, &self.config);
+            ui::combo_camera::show(
+                ui,
+                &mut self.ui_state,
+                &mut self.state,
+                &self.theme,
+                &self.config,
+            );
 
-            ui::button_calibrate::show(ui, &mut self.ui_state, &mut self.state, &self.theme, &self.config);
+            ui::button_calibrate::show(
+                ui,
+                &mut self.ui_state,
+                &mut self.state,
+                &self.theme,
+                &self.config,
+            );
 
-            monitor_clicked = ui::button_control::show(ui, &mut self.ui_state, &mut self.state, &self.theme, &self.config);
+            monitor_clicked = ui::button_control::show(
+                ui,
+                &mut self.ui_state,
+                &mut self.state,
+                &self.theme,
+                &self.config,
+            );
         });
 
-        
         if monitor_clicked {
-            let start_condition =  !self.state.is_calibrating && self.state.calibration_result.is_some() && self.state.is_monitoring;
-            
-            if start_condition  {
+            let start_condition = !self.state.is_calibrating
+                && self.state.calibration_result.is_some()
+                && self.state.is_monitoring;
+
+            if start_condition {
                 self.start_monitoring();
-            } 
-            else {
+            } else {
                 self.stop_monitoring();
             }
         }
-
-
-
     }
 
     fn handle_hotkeys(&mut self) {
@@ -387,28 +453,20 @@ impl CameraApp {
             return;
         };
 
-        if event_id == hotkey_data.toggle_monitoring_id  && !self.state.is_calibrating && self.state.calibration_result.is_some() {
-            crate::ui::button_control::exec_clicked(
-                &mut self.ui_state,
-                &mut self.state
-            );
+        if event_id == hotkey_data.toggle_monitoring_id
+            && !self.state.is_calibrating
+            && self.state.calibration_result.is_some()
+        {
+            crate::ui::button_control::exec_clicked(&mut self.ui_state, &mut self.state);
 
             if self.state.is_monitoring {
                 self.start_monitoring();
-            } 
-            else {
+            } else {
                 self.stop_monitoring();
             }
-        }
-
-        else if event_id == hotkey_data.calibrate_id {
-            crate::ui::button_calibrate::exec_clicked(
-                &mut self.ui_state,
-                &mut self.state
-            );
-        }
-
-        else if event_id == hotkey_data.calibrate_capture_id {
+        } else if event_id == hotkey_data.calibrate_id {
+            crate::ui::button_calibrate::exec_clicked(&mut self.ui_state, &mut self.state);
+        } else if event_id == hotkey_data.calibrate_capture_id {
             if !self.state.is_calibrating {
                 return;
             }
@@ -422,31 +480,25 @@ impl CameraApp {
                 self.events_rx = Some(events_rx);
                 let selected_camera = self.state.selected_camera;
                 let _ = std::thread::spawn(move || {
-                    crate::core::calibrator::opencv_posture_calibrate(events_tx, &cmds_rx, selected_camera);
+                    crate::core::calibrator::opencv_posture_calibrate(
+                        events_tx,
+                        &cmds_rx,
+                        selected_camera,
+                    );
                 });
             }
-
             // if state is bad pose, then just send proceed command
             else if self.state.calibration_state == CalibrationState::CalibrationBadPose {
                 if let Some(cmds_tx) = &self.cmds_tx {
-                    
                     cmds_tx.send(commands::Command::CalibrationProceed).unwrap();
                 }
-            }
-
-            else {
+            } else {
                 return;
             }
-
-
-            
-                
-            
         }
     }
 
     fn handle_events(&mut self) {
-        
         if self.events_rx.is_none() {
             return;
         }
@@ -455,7 +507,6 @@ impl CameraApp {
             return;
         };
 
-        
         match app_event {
             events::AppEvent::CalibrationProgress(progress) => {
                 self.ui_state.step_progress = progress;
@@ -511,16 +562,20 @@ impl CameraApp {
 
             events::AppEvent::PostureAssessmentWarning(warning) => {
                 let (class, severity, msg) = warning;
-                
-                
-                println!("Posture Assessment Warning: {:?} {:?} {:?}", msg, class, severity);
-                println!("bad_pose_warning_shown: {:?}", self.ui_state.bad_pose_warning_shown);
-                if !self.ui_state.bad_pose_warning_shown && class == crate::core::pose::PostureClass::Bad {
+
+                println!(
+                    "Posture Assessment Warning: {msg:?} {class:?} {severity:?}"
+                );
+                println!(
+                    "bad_pose_warning_shown: {:?}",
+                    self.ui_state.bad_pose_warning_shown
+                );
+                if !self.ui_state.bad_pose_warning_shown
+                    && class == crate::core::pose::PostureClass::Bad
+                {
                     self.ui_state.bad_pose_warning_shown = true;
                     self.ui_state.open_time = Some(Instant::now());
                 }
-
-
             }
 
             events::AppEvent::PostureAssessmentError(msg) => {
@@ -533,8 +588,6 @@ impl CameraApp {
 
             _ => {}
         }
-        
-        
     }
 
     fn stop_monitoring(&mut self) {
@@ -554,15 +607,17 @@ impl CameraApp {
             self.events_rx = Some(events_rx);
             let selected_camera = self.state.selected_camera;
             let calibration_result = self.state.calibration_result.clone().unwrap();
-            
+
             let _ = std::thread::spawn(move || {
-                crate::core::pose::opencv_posture_loop(events_tx.clone(), 
-                    &cmds_rx, selected_camera, calibration_result);
+                crate::core::pose::opencv_posture_loop(
+                    events_tx.clone(),
+                    &cmds_rx,
+                    selected_camera,
+                    calibration_result,
+                );
             });
-            
         }
     }
-
 }
 
 impl eframe::App for CameraApp {
@@ -571,7 +626,6 @@ impl eframe::App for CameraApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-
         // TODO: Find another and better way to do this
         ctx.request_repaint_after(std::time::Duration::from_millis(200));
         self.handle_hotkeys();

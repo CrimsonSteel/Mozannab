@@ -5,7 +5,7 @@ pub enum AppEvent {
     CalibrationBadPoseFinished,
 
     CalibrationStarted,
-    CalibrationProgress(f32),   
+    CalibrationProgress(f32),
     CalibrationCompleted(super::core::CalibrationResult),
     CalibrationError(String),
 
@@ -15,8 +15,6 @@ pub enum AppEvent {
     PostureAssessmentWarning((crate::core::pose::PostureClass, f64, String)), // class, severity, and message
     PostureAssessmentScore(f64),
 }
-
-
 
 pub fn create_events_channel() -> (Sender<AppEvent>, Receiver<AppEvent>) {
     mpsc::channel()
