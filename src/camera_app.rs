@@ -27,6 +27,9 @@ pub struct UiState {
     pub calibration_popup_step2_opened: bool,
     pub step_progress: f32,
 
+    pub bad_pose_warning_shown: bool,
+
+    // for calibration done and bad pose warning
     pub open_time: Option<Instant>,
 }
 impl UiState {
@@ -38,6 +41,7 @@ impl UiState {
             calibration_popup_step1_opened: false,
             calibration_popup_step2_opened: false,
             step_progress: 0.0,
+            bad_pose_warning_shown: false,
             open_time: None,
         }
     }
@@ -223,6 +227,41 @@ impl CameraApp {
         );
     }
 
+    fn render_immediate_pose_status(&mut self, ctx: &egui::Context, position: [f32; 2], viewport_size: [f32; 2]) {
+        ctx.show_viewport_immediate(
+            egui::ViewportId::from_hash_of("immediate_viewport"),
+            egui::ViewportBuilder::default()
+                .with_title("Immediate Viewport")
+                .with_inner_size(viewport_size)
+                .with_decorations(false)
+                .with_transparent(true)
+                .with_window_level(egui::viewport::WindowLevel::AlwaysOnTop)
+                .with_position(position),
+            |ctx, _class| {
+                egui::CentralPanel::default()
+                    .frame(
+                        egui::Frame::none()
+                            .fill(self.theme.button_recording_hover)
+                            .inner_margin(egui::Margin::same(34.0))
+                            .stroke(egui::Stroke::new(6.0, self.theme.button_recording))
+                    )
+                    .show(ctx, |ui| {
+                        // Center everything vertically and horizontally
+                        ui.centered_and_justified(|ui| {
+                            ui.add(
+                                egui::Label::new(
+                                    egui::RichText::new("Bad pose detected! Please correct your posture.")
+                                        .color(self.theme.panel_bg)
+                                        .size(30.0)
+                                        .strong()
+                                )
+                            );
+                        });
+                    });
+            },
+        );
+    }
+
     // Rendering main UI
     fn render_ui(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default()
@@ -235,26 +274,27 @@ impl CameraApp {
                     .show(ctx, |ui| {
                         self.render_main_panel(ui);
                     });
+                
+                let viewport_w = 340.0;
+                let viewport_h = 250.0;
+                
+                let viewport_info = ctx.input(|i| i.viewport().clone());
+                let screen_rect = viewport_info.monitor_size.unwrap_or_default();
 
+                let pos_x = screen_rect.x - viewport_w;
+                let pos_y = screen_rect.y - viewport_h;
+                let position = [pos_x/2.0, pos_y/2.0];
+                
 
                 if self.ui_state.calibration_popup_step1_opened || self.ui_state.calibration_popup_step2_opened || self.state.calibration_state == CalibrationState::CalibrationDone {
   
-                    let viewport_w = 340.0;
-                    let viewport_h = 250.0;
-                    
-                    let viewport_info = ctx.input(|i| i.viewport().clone());
-                    let screen_rect = viewport_info.monitor_size.unwrap_or_default();
-
-                    let pos_x = screen_rect.x - viewport_w;
-                    let pos_y = screen_rect.y - viewport_h;
-                    let position = [pos_x/2.0, pos_y/2.0];
-
                     if self.ui_state.calibration_popup_step1_opened {
                         self.render_immediate_calibration_step1(ctx, position, [viewport_w, viewport_h], self.ui_state.step_progress);
                     }
                     else if self.ui_state.calibration_popup_step2_opened {
                         self.render_immediate_calibration_step2(ctx, position, [viewport_w, viewport_h], self.ui_state.step_progress);
                     }
+
                     else if self.state.calibration_state == CalibrationState::CalibrationDone {
                         if let Some(open_time) = self.ui_state.open_time {
                             // Close after 3 seconds
@@ -267,6 +307,19 @@ impl CameraApp {
                             }
                         }
                         
+                    }
+                }
+
+                if self.state.is_monitoring && self.ui_state.bad_pose_warning_shown {
+                    if let Some(open_time) = self.ui_state.open_time {
+                        // Close after 5 seconds
+                        if open_time.elapsed().as_secs() >= 5 {
+                            self.ui_state.bad_pose_warning_shown = false;
+                            self.ui_state.open_time = None;
+                        }
+                        else {
+                            self.render_immediate_pose_status(ctx, position, [viewport_w, viewport_h]);
+                        }
                     }
                 }
                 
@@ -458,7 +511,16 @@ impl CameraApp {
 
             events::AppEvent::PostureAssessmentWarning(warning) => {
                 let (class, severity, msg) = warning;
-                dbg!("Posture Assessment Warning: {}", msg);
+                
+                
+                println!("Posture Assessment Warning: {:?} {:?} {:?}", msg, class, severity);
+                println!("bad_pose_warning_shown: {:?}", self.ui_state.bad_pose_warning_shown);
+                if !self.ui_state.bad_pose_warning_shown && class == crate::core::pose::PostureClass::Bad {
+                    self.ui_state.bad_pose_warning_shown = true;
+                    self.ui_state.open_time = Some(Instant::now());
+                }
+
+
             }
 
             events::AppEvent::PostureAssessmentError(msg) => {
@@ -466,7 +528,7 @@ impl CameraApp {
             }
 
             events::AppEvent::PostureAssessmentScore(score) => {
-                dbg!("Posture Assessment Score: {}", score);
+                // dbg!("Posture Assessment Score: {}", score);
             }
 
             _ => {}

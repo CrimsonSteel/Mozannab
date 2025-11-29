@@ -11,7 +11,7 @@ pub struct PostureAssessment {
     pub severity: f64,            // How bad (0.0-1.0)
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PostureClass {
     Good,
     Warning,
@@ -167,10 +167,12 @@ pub fn opencv_posture_loop(tx: Sender<AppEvent>, rx: &Receiver<CalibrationComman
             &calibration_result, 
             &pose_proc_configs
         );
+        println!("Posture Assessment: score={:.3}, confidence={:.3}, class={:?}, severity={:.3}", 
+            assessment.raw_score, assessment.confidence, assessment.classification, assessment.severity);
 
         match assessment.classification {
 
-            PostureClass::Bad => {
+            PostureClass::Bad | PostureClass::Warning => {
 
                 let severity_msg = if assessment.severity > 0.7 {
                     "Severe bad posture detected!"
