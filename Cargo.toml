@@ -12,7 +12,11 @@ image = "0.24"
 opencv = {version = "0.92.0", default-features = false, features = ["clang-runtime", "gapi", "imgcodecs", "imgproc", "videoio", "video", "highgui", "dnn"]}
 once_cell = "1.21.3"
 rust-embed = "8.0"
-rand = "0.8" 
+rand = "0.8"
+log = "0.4"
+env_logger = "0.11"
+simplelog = "0.12"
+chrono = "0.4"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.48", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }

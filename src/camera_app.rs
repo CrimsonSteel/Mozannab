@@ -1,5 +1,6 @@
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::Instant;
+use log::{info, warn, error, debug};
 
 use crate::cameras;
 use crate::commands;
@@ -553,23 +554,19 @@ impl CameraApp {
             }
 
             events::AppEvent::PostureAssessmentStarted => {
-                dbg!("Posture Assessment Started");
+                info!("Posture Assessment Started");
             }
 
             events::AppEvent::PostureAssessmentCompleted => {
-                dbg!("Posture Assessment Completed");
+                info!("Posture Assessment Completed");
             }
 
             events::AppEvent::PostureAssessmentWarning(warning) => {
                 let (class, severity, msg) = warning;
 
-                println!(
-                    "Posture Assessment Warning: {msg:?} {class:?} {severity:?}"
-                );
-                println!(
-                    "bad_pose_warning_shown: {:?}",
-                    self.ui_state.bad_pose_warning_shown
-                );
+                warn!("Posture Assessment Warning: {msg:?} {class:?} {severity:?}");
+                info!("bad_pose_warning_shown: {:?}", self.ui_state.bad_pose_warning_shown);
+
                 if !self.ui_state.bad_pose_warning_shown
                     && class == crate::core::pose::PostureClass::Bad
                 {
@@ -579,11 +576,11 @@ impl CameraApp {
             }
 
             events::AppEvent::PostureAssessmentError(msg) => {
-                dbg!("Posture Assessment Error: {}", msg);
+                info!("Posture Assessment Error: {}", msg);
             }
 
             events::AppEvent::PostureAssessmentScore(score) => {
-                // dbg!("Posture Assessment Score: {}", score);
+                // info!("Posture Assessment Score: {}", score);
             }
 
             _ => {}
