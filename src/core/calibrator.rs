@@ -12,11 +12,13 @@ fn wait_for_calibration_proceed(rx: &Receiver<CalibrationCommand>) -> bool {
             CalibrationCommand::CalibrationProceed => {
                 return true;
             }
+            _ => {
+                return false;
+            }
         }
     }
     false
 }
-
 
 // long-running calibration...
 pub fn opencv_posture_calibrate(tx: Sender<AppEvent>, rx: &Receiver<CalibrationCommand>, selected_camera: i32) {

@@ -17,7 +17,7 @@ pub mod calibrator;
 pub mod videocapture;
 pub mod utils;
 pub mod model;
-
+pub mod pose;
 
 struct PostureProcConfig {
     face_proto: &'static str,
@@ -26,6 +26,10 @@ struct PostureProcConfig {
     // Calibration settings
     samples_needed: usize,
     mad_filter_k: f64,
+    
+    check_interval_ms: u64,
+    check_interval_jitter_ms: u64,
+
 
     // Detection thresholds
     face_conf_threshold: f32,
@@ -42,13 +46,16 @@ impl Default for PostureProcConfig {
     fn default() -> Self {
         Self {
             // Model paths
-            face_proto: "models/deploy.prototxt",
-            face_model: "models/res10_300x300_ssd_iter_140000.caffemodel",
+            face_proto: "deploy.prototxt",
+            face_model: "res10_300x300_ssd_iter_140000.caffemodel",
             
             // Calibration settings
             samples_needed: 10,
             mad_filter_k: 3.5,
             
+            check_interval_ms: 2000,
+            check_interval_jitter_ms: 500,
+
             // Detection thresholds
             face_conf_threshold: 0.5,
             

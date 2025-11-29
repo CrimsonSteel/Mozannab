@@ -31,10 +31,10 @@ pub fn get_or_init_face_net(config: &super::PostureProcConfig) -> opencv::Result
         return Ok(existing.clone());
     }
 
-    // check_models(config).map_err(|s| opencv::Error::new(opencv::core::StsError, s))?;
-
-    let proto = Assets::get("deploy.prototxt").unwrap();
-    let model = Assets::get("res10_300x300_ssd_iter_140000.caffemodel").unwrap();
+    let configs = super::PostureProcConfig::default();
+    
+    let proto = Assets::get(configs.face_proto).unwrap();
+    let model = Assets::get(configs.face_model).unwrap();
 
     let proto_bytes: Vector<u8> = core::Vector::from_slice(proto.data.as_ref());
     let model_bytes: Vector<u8> = core::Vector::from_slice(model.data.as_ref());

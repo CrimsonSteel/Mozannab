@@ -294,6 +294,9 @@ impl CameraApp {
 
     // Render cameras combo box and buttons (start/stop and calibrate)
     fn render_controls(&mut self, ui: &mut egui::Ui) {
+
+        let mut monitor_clicked = false;
+
         ui.horizontal(|ui| {
 
             ui.spacing_mut().item_spacing.x = 10.0;
@@ -303,9 +306,22 @@ impl CameraApp {
 
             ui::button_calibrate::show(ui, &mut self.ui_state, &mut self.state, &self.theme, &self.config);
 
-            ui::button_control::show(ui, &mut self.ui_state, &mut self.state, &self.theme, &self.config);
-
+            monitor_clicked = ui::button_control::show(ui, &mut self.ui_state, &mut self.state, &self.theme, &self.config);
         });
+
+        
+        if monitor_clicked {
+            let start_condition =  !self.state.is_calibrating && self.state.calibration_result.is_some() && self.state.is_monitoring;
+            
+            if start_condition  {
+                self.start_monitoring();
+            } 
+            else {
+                self.stop_monitoring();
+            }
+        }
+
+
 
     }
 
@@ -318,11 +334,18 @@ impl CameraApp {
             return;
         };
 
-        if event_id == hotkey_data.toggle_monitoring_id {
+        if event_id == hotkey_data.toggle_monitoring_id  && !self.state.is_calibrating && self.state.calibration_result.is_some() {
             crate::ui::button_control::exec_clicked(
                 &mut self.ui_state,
                 &mut self.state
             );
+
+            if self.state.is_monitoring {
+                self.start_monitoring();
+            } 
+            else {
+                self.stop_monitoring();
+            }
         }
 
         else if event_id == hotkey_data.calibrate_id {
@@ -418,7 +441,7 @@ impl CameraApp {
             events::AppEvent::CalibrationCompleted(calibration_result) => {
                 dbg!("Calibration Completed");
                 self.state.calibration_result = Some(calibration_result);
-                
+
                 // next state
                 self.state.calibration_state = CalibrationState::CalibrationDone;
                 self.state.is_calibrating = false;
@@ -426,10 +449,43 @@ impl CameraApp {
                 self.ui_state.open_time = Some(Instant::now());
             }
 
+            events::AppEvent::PostureAssessmentStarted => {
+                dbg!("Posture Assessment Started");
+            }
+
+            events::AppEvent::PostureAssessmentCompleted => {
+                dbg!("Posture Assessment Completed");
+            }
             _ => {}
         }
         
         
+    }
+
+    fn stop_monitoring(&mut self) {
+        // send stop command to monitoring thread
+        if let Some(cmds_tx) = &self.cmds_tx {
+            cmds_tx.send(commands::Command::TrackStop).ok();
+        }
+    }
+
+    fn start_monitoring(&mut self) {
+        if self.state.is_monitoring {
+            // creating channels
+            let (cmds_tx, cmds_rx) = commands::create_cmd_channel();
+            let (events_tx, events_rx) = events::create_events_channel();
+
+            self.cmds_tx = Some(cmds_tx.clone());
+            self.events_rx = Some(events_rx);
+            let selected_camera = self.state.selected_camera;
+            let calibration_result = self.state.calibration_result.clone().unwrap();
+            
+            let _ = std::thread::spawn(move || {
+                crate::core::pose::opencv_posture_loop(events_tx.clone(), 
+                    &cmds_rx, selected_camera, calibration_result);
+            });
+            
+        }
     }
 
 }

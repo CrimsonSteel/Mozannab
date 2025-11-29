@@ -1,5 +1,6 @@
 use eframe::egui;
 use super::styles::ThemeColors;
+use std::sync::mpsc::{Sender, Receiver};
 
 pub fn show(
     ui: &mut egui::Ui,
@@ -7,7 +8,7 @@ pub fn show(
     app_state: &mut crate::camera_app::AppState,
     colors: &ThemeColors,
     config: &crate::config::AppConfig,
-) {
+) -> bool {
     let is_monitoring = app_state.is_monitoring;
     let btn_size = [config.button_width, config.button_height];
 
@@ -19,6 +20,8 @@ pub fn show(
     };
 
     let enabled = !app_state.is_calibrating && app_state.calibration_result.is_some();
+    
+    let mut clicked = false;
 
     ui.add_enabled_ui(enabled, |ui| {
         
@@ -46,16 +49,18 @@ pub fn show(
 
         if response.clicked() {
             exec_clicked(ui_state, app_state);
-        }
 
+            clicked = true;
+        }        
     });
 
+    return clicked;
 }
 
 
 pub fn exec_clicked(
     ui_state: &mut crate::camera_app::UiState,
-    app_state: &mut crate::camera_app::AppState,
+    app_state: &mut crate::camera_app::AppState
 ) {
     app_state.is_monitoring = !app_state.is_monitoring;
 
