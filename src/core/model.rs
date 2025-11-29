@@ -83,19 +83,6 @@ pub fn batch_inference(inputs: &Vec<Mat>) -> opencv::Result<Vec<Option<super::Fa
         opencv::core::CV_32F,
     ).unwrap();
 
-    /*
-    println!("Blob dims: {}", blob.dims());
-    println!("Blob size (2D view): {:?}", blob.size()?);
-    
-    let shape = blob.mat_size();
-    println!("Blob FULL shape: [");
-    for i in 0..shape.len() {
-        println!("  dim[{}] = {}", i, shape[i]);
-    }
-    println!("]");
-    println!("Expected: [batch={}, channels=3, height=300, width=300]", resized_inputs.len());
-    */
-
     net.set_input(&blob, "", 1.0, core::Scalar::default()).unwrap();
     let detections = net.forward_single("").unwrap();
 

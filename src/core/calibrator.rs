@@ -118,11 +118,11 @@ pub fn opencv_posture_calibrate(tx: Sender<AppEvent>, rx: &Receiver<CalibrationC
         posture_midpoint: midpoint,
     };
 
-    dbg!("Calibration Result: Good Baseline: {}, Bad Baseline: {}, Midpoint: {}",
+    /*dbg!("Calibration Result: Good Baseline: {}, Bad Baseline: {}, Midpoint: {}",
         calibration_result.posture_good_baseline,
         calibration_result.posture_bad_baseline,
         calibration_result.posture_midpoint
-    );
+    );*/
 
     let _ = tx.send(AppEvent::CalibrationCompleted(calibration_result));
 

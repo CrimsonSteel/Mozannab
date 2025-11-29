@@ -60,8 +60,6 @@ pub fn show(
 
                     if resp.clicked() {
                         app_state.selected_camera = i as i32;
-                        // ui_state.combo_open = false;
-                        // println!("Selected camera index: {}", egui::containers::ComboBox::is_open(ui.ctx(), widget_id));
                     }
                 }
 
@@ -90,7 +88,4 @@ pub fn show(
 
     ui_state.prev_combo_open = ui_state.combo_open;
 
-    /*if app_state.selected_camera != old_selected {
-        dbg!("Camera changed to index {}", app_state.selected_camera);
-    }*/
 }

@@ -47,6 +47,5 @@ pub fn exec_clicked(
     if app_state.is_calibrating {
         // reset to initial state
         app_state.calibration_state = crate::camera_app::CalibrationState::CalibrationGoodPose;
-        dbg!("Calibration mode: {:?}", app_state.calibration_state);
     }
 }

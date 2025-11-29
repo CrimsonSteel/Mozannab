@@ -405,7 +405,6 @@ impl CameraApp {
         
         match app_event {
             events::AppEvent::CalibrationProgress(progress) => {
-                // dbg!("Calibration Progress: {}", progress);
                 self.ui_state.step_progress = progress;
             }
 
