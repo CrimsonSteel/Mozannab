@@ -4,7 +4,6 @@ use opencv::{
     prelude::*,
 };
 
-
 use once_cell::sync::OnceCell;
 use std::sync::{Arc, Mutex};
 
@@ -62,10 +61,7 @@ pub fn batch_inference(inputs: &Vec<Mat>) -> opencv::Result<Vec<Option<super::Fa
     // resize and prepare blob
     let resized_inputs: core::Vector<Mat> = inputs
         .iter()
-        .map(|img| {
-            
-            super::utils::resize_image(img, core::Size::new(300, 300)).unwrap()
-        })
+        .map(|img| super::utils::resize_image(img, core::Size::new(300, 300)).unwrap())
         .collect();
 
     let blob = dnn::blob_from_images(
@@ -92,7 +88,8 @@ pub fn batch_inference(inputs: &Vec<Mat>) -> opencv::Result<Vec<Option<super::Fa
     let batch_size = inputs.len();
     let mut batch_results: Vec<Option<super::FaceData>> = vec![None; batch_size];
 
-    let (w, h) = inputs.first()
+    let (w, h) = inputs
+        .first()
         .map(|img| (img.cols(), img.rows()))
         .unwrap_or((0, 0));
 

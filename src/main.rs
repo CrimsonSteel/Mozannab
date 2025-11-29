@@ -7,10 +7,10 @@ mod config;
 mod core;
 mod events;
 mod hotkey;
-mod ui;
 mod logging;
+mod ui;
 
-use log::{info, warn, error, debug};
+use log::{error, info};
 
 /*
     Following functions are Windows only. They are used to handle dynamic window resize needed by combobox
@@ -137,14 +137,13 @@ fn load_icon() -> egui::IconData {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-
     // Initialize logger
     logging::init_logger();
     info!("Application starting...");
 
     // Set panic hook to log crashes
     std::panic::set_hook(Box::new(|panic_info| {
-        error!("Application crashed: {}", panic_info);
+        error!("Application crashed: {panic_info}");
     }));
 
     logging::rotate_logs_if_needed();

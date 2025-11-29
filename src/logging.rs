@@ -1,6 +1,5 @@
 use log::LevelFilter;
 use simplelog::*;
-use std::fs::{self, OpenOptions};
 use std::path::PathBuf;
 
 pub fn init_logger() {
@@ -22,21 +21,21 @@ fn init_debug_logger() {
     .unwrap_or_else(|_| {
         SimpleLogger::init(LevelFilter::Debug, Config::default()).unwrap();
     });
-    
+
     log::info!("Logger initialized (debug mode - terminal output)");
 }
 
 #[cfg(not(debug_assertions))]
 fn init_release_logger() {
     let log_dir = get_log_directory();
-    
+
     if let Err(e) = fs::create_dir_all(&log_dir) {
         eprintln!("Failed to create log directory: {}", e);
         return;
     }
 
     let log_file_path = log_dir.join("mozannab.log");
-    
+
     let log_file = match OpenOptions::new()
         .create(true)
         .append(true)
@@ -51,9 +50,7 @@ fn init_release_logger() {
 
     WriteLogger::init(
         LevelFilter::Info,
-        ConfigBuilder::new()
-            .set_time_format_rfc3339()
-            .build(),
+        ConfigBuilder::new().set_time_format_rfc3339().build(),
         log_file,
     )
     .unwrap_or_else(|e| {
@@ -70,7 +67,7 @@ fn get_log_directory() -> PathBuf {
         let appdata = std::env::var("APPDATA")
             .or_else(|_| std::env::var("USERPROFILE"))
             .unwrap_or_else(|_| ".".to_string());
-        
+
         PathBuf::from(appdata).join("Mozannab").join("logs")
     }
 
@@ -105,7 +102,7 @@ pub fn get_log_file_path() -> Option<PathBuf> {
     {
         Some(get_log_directory().join("mozannab.log"))
     }
-    
+
     #[cfg(debug_assertions)]
     {
         None
@@ -116,26 +113,20 @@ pub fn open_log_directory() {
     #[cfg(not(debug_assertions))]
     {
         let log_dir = get_log_directory();
-        
+
         #[cfg(target_os = "windows")]
         {
-            let _ = std::process::Command::new("explorer")
-                .arg(log_dir)
-                .spawn();
+            let _ = std::process::Command::new("explorer").arg(log_dir).spawn();
         }
-        
+
         #[cfg(target_os = "macos")]
         {
-            let _ = std::process::Command::new("open")
-                .arg(log_dir)
-                .spawn();
+            let _ = std::process::Command::new("open").arg(log_dir).spawn();
         }
-        
+
         #[cfg(target_os = "linux")]
         {
-            let _ = std::process::Command::new("xdg-open")
-                .arg(log_dir)
-                .spawn();
+            let _ = std::process::Command::new("xdg-open").arg(log_dir).spawn();
         }
     }
 }
@@ -144,15 +135,15 @@ pub fn rotate_logs_if_needed() {
     #[cfg(not(debug_assertions))]
     {
         let log_file_path = get_log_directory().join("mozannab.log");
-        
+
         if let Ok(metadata) = fs::metadata(&log_file_path) {
             const MAX_LOG_SIZE: u64 = 10 * 1024 * 1024; // 10 MB
-            
+
             if metadata.len() > MAX_LOG_SIZE {
                 let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
                 let archived_name = format!("mozannab_{}.log", timestamp);
                 let archived_path = get_log_directory().join(archived_name);
-                
+
                 if let Err(e) = fs::rename(&log_file_path, &archived_path) {
                     log::error!("Failed to rotate log file: {}", e);
                 } else {

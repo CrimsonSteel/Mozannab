@@ -23,8 +23,6 @@ pub fn enumerate_cameras() -> Result<CameraList, String> {
 
             Ok(camera_list)
         }
-        Err(e) => {
-            Err(format!("Failed to query cameras: {e}"))
-        }
+        Err(e) => Err(format!("Failed to query cameras: {e}")),
     }
 }
