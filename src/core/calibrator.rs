@@ -181,9 +181,9 @@ pub fn opencv_posture_calibrate(
     );
 
     if (bad_median_area - good_median_area).abs() < 1e-3 {
-        log::error!("Calibration failed: insufficient difference between good and bad postures");
+        log::error!("Calibration failed: Insufficient difference between good and bad postures");
         let _ = tx.send(AppEvent::CalibrationError(
-            "insufficient difference between good and bad postures.".to_string(),
+            "Insufficient difference between good and bad postures.".to_string(),
         ));
         return;
     };
