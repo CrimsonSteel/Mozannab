@@ -5,7 +5,19 @@ use opencv::{
 };
 
 pub fn open_camera(index: i32, api: Option<VideoCaptureAPIs>) -> opencv::Result<VideoCapture> {
-    let mut cam = VideoCapture::new(index, api.unwrap_or(VideoCaptureAPIs::CAP_ANY).into())?;
+
+    let used_api: i32;
+    // if windows, use DirectShow by default, elese, use any
+    #[cfg(target_os = "windows")]
+    {
+        used_api = api.unwrap_or(VideoCaptureAPIs::CAP_DSHOW).into();
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        used_api = api.unwrap_or(VideoCaptureAPIs::CAP_ANY).into();
+    }
+
+    let mut cam = VideoCapture::new(index, used_api)?;
     if !cam.is_opened()? {
         return Err(opencv::Error::new(
             opencv::core::StsError,

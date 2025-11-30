@@ -137,6 +137,6 @@ pub fn batch_inference(inputs: &Vec<Mat>) -> opencv::Result<Vec<Option<super::Fa
             });
         }
     }
-
+    
     Ok(batch_results)
 }

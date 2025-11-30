@@ -57,6 +57,8 @@ pub struct AppState {
 
     // Calibration data
     pub calibration_result: Option<crate::core::CalibrationResult>,
+    pub calibration_is_err: bool,
+    pub calibration_err_msg: String,
 }
 
 impl AppState {
@@ -69,6 +71,8 @@ impl AppState {
             is_calibrating: false,
             calibration_state: CalibrationState::CalibrationNone,
             calibration_result: None,
+            calibration_is_err: false,
+            calibration_err_msg: String::new(),
         }
     }
 
@@ -82,6 +86,8 @@ impl AppState {
             is_calibrating: false,
             calibration_state: CalibrationState::CalibrationNone,
             calibration_result: None,
+            calibration_is_err: false,
+            calibration_err_msg: String::new(),
         }
     }
 }
@@ -235,6 +241,8 @@ impl CameraApp {
         ctx: &egui::Context,
         position: [f32; 2],
         viewport_size: [f32; 2],
+        is_success: bool,
+        msg: String,
     ) {
         ctx.show_viewport_immediate(
             egui::ViewportId::from_hash_of("immediate_viewport"),
@@ -249,17 +257,17 @@ impl CameraApp {
                 egui::CentralPanel::default()
                     .frame(
                         egui::Frame::none()
-                            .fill(self.theme.button_primary)
+                            .fill(if is_success { self.theme.button_primary } else { self.theme.button_recording })
                             .inner_margin(egui::Margin::same(34.0))
-                            .stroke(egui::Stroke::new(6.0, self.theme.button_primary_hover)),
+                            .stroke(egui::Stroke::new(6.0, if is_success { self.theme.button_primary_hover } else { self.theme.button_recording_hover })),
                     )
                     .show(ctx, |ui| {
                         // Center everything vertically and horizontally
                         ui.centered_and_justified(|ui| {
                             ui.add(egui::Label::new(
-                                egui::RichText::new("Calibration Done!")
+                                egui::RichText::new(msg.to_string())
                                     .color(self.theme.panel_bg)
-                                    .size(30.0)
+                                    .size(if is_success { 30.0 } else { 24.0 })
                                     .strong(),
                             ));
                         });
@@ -306,6 +314,18 @@ impl CameraApp {
         );
     }
 
+
+    fn get_pos_on_screen(ctx: &egui::Context, viewport_size: [f32; 2]) -> [f32; 2] {
+        let viewport_info = ctx.input(|i| i.viewport().clone());
+        let screen_rect = viewport_info.monitor_size.unwrap_or_default();
+
+        let pos_x = screen_rect.x - viewport_size[0];
+        let pos_y = screen_rect.y - viewport_size[1];
+        let position = [pos_x / 2.0, pos_y / 2.0];
+
+        return position;
+    }
+
     // Rendering main UI
     fn render_ui(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default()
@@ -319,15 +339,18 @@ impl CameraApp {
                         self.render_main_panel(ui);
                     });
 
-                let viewport_w = 340.0;
-                let viewport_h = 250.0;
+                let mut viewport_w = 340.0;
+                let mut viewport_h = 250.0;
 
+                /*
                 let viewport_info = ctx.input(|i| i.viewport().clone());
                 let screen_rect = viewport_info.monitor_size.unwrap_or_default();
 
                 let pos_x = screen_rect.x - viewport_w;
                 let pos_y = screen_rect.y - viewport_h;
                 let position = [pos_x / 2.0, pos_y / 2.0];
+                */
+                let mut position = Self::get_pos_on_screen(ctx, [viewport_w, viewport_h]);
 
                 if self.ui_state.calibration_popup_step1_opened
                     || self.ui_state.calibration_popup_step2_opened
@@ -350,14 +373,34 @@ impl CameraApp {
                     } else if self.state.calibration_state == CalibrationState::CalibrationDone {
                         if let Some(open_time) = self.ui_state.open_time {
                             // Close after 3 seconds
-                            if open_time.elapsed().as_secs() >= 3 {
+                            let on_screen_time = if self.state.calibration_is_err {5} else {3};
+
+                            if open_time.elapsed().as_secs() >= on_screen_time {
                                 self.state.calibration_state = CalibrationState::CalibrationNone;
                                 self.ui_state.open_time = None;
+                                self.state.calibration_is_err = false;
+                                self.state.calibration_err_msg.clear();
+
                             } else {
+
+                                let success = !self.state.calibration_is_err;
+                                let msg = if success {
+                                    String::from("Calibration Done!")
+                                } else {
+                                    self.state.calibration_err_msg.clone()
+                                };
+
+                                if !success {
+                                    viewport_w = 340.0 * 1.5;
+                                    viewport_h = 250.0 * 1.5;
+                                    position = Self::get_pos_on_screen(ctx, [viewport_w, viewport_h]);
+                                }
+
                                 self.render_immediate_calibration_status(
                                     ctx,
                                     position,
                                     [viewport_w, viewport_h],
+                                    success, msg
                                 );
                             }
                         }
@@ -515,16 +558,25 @@ impl CameraApp {
             }
 
             events::AppEvent::CalibrationError(err) => {
-                dbg!("Calibration Error: {}", err);
+                log::error!("Calibration Error: {}", err);
+
+                // next state
+                self.state.calibration_state = CalibrationState::CalibrationDone;
+                self.state.is_calibrating = false;
+                self.ui_state.step_progress = 0.0;
+                self.ui_state.open_time = Some(Instant::now());
+
+                self.state.calibration_is_err = true;
+                self.state.calibration_err_msg = err;
             }
 
             events::AppEvent::CalibrationStarted => {
-                dbg!("Calibration Started");
+                log::info!("Calibration Started");
                 self.state.calibration_state = CalibrationState::CalibrationNone;
             }
 
             events::AppEvent::CalibrationGoodPoseFinished => {
-                dbg!("Calibration Good Pose Finished");
+                log::info!("Calibration Good Pose Finished");
 
                 self.ui_state.calibration_popup_step1_opened = false;
                 self.ui_state.calibration_popup_step2_opened = true;

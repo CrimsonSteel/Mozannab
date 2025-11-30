@@ -1,4 +1,4 @@
-use crate::commands::Command as CalibrationCommand;
+use crate::{commands::Command as CalibrationCommand, core::utils};
 use crate::events::AppEvent;
 use std::sync::mpsc::{Receiver, Sender};
 
@@ -172,16 +172,21 @@ pub fn opencv_posture_loop(
                 let _ = super::videocapture::close_camera(&mut cam);
                 return;
             };
+            super::utils::show_image("window_name", &frame, 200);
             frames.push(frame);
+
+
             std::thread::sleep(std::time::Duration::from_millis(200));
         }
+
+        let _ = super::videocapture::close_camera(&mut cam);
+        log::debug!("Posture: camera {selected_camera} closed");
 
         // Process frames for posture assessment
         let Ok(posture_results) = super::model::batch_inference(&frames) else {
             let _ = tx.send(AppEvent::PostureAssessmentError(
                 "Failed to perform posture assessment.".to_string(),
             ));
-            let _ = super::videocapture::close_camera(&mut cam);
             return;
         };
 
@@ -223,9 +228,6 @@ pub fn opencv_posture_loop(
         }
 
         let _ = tx.send(AppEvent::PostureAssessmentScore(assessment.raw_score));
-
-        let _ = super::videocapture::close_camera(&mut cam);
-        log::debug!("Posture: camera {selected_camera} closed");
 
         last_check_time = std::time::Instant::now();
     }

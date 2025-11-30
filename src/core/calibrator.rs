@@ -108,6 +108,9 @@ pub fn opencv_posture_calibrate(
 
     let _ = tx.send(AppEvent::CalibrationBadPoseFinished);
 
+    // closing camera
+    let _ = super::videocapture::close_camera(&mut cam);
+
     // Batched face detections for both good and bad frames
 
     let Ok(good_detections) = super::model::batch_inference(&good_frames) else {
@@ -115,7 +118,6 @@ pub fn opencv_posture_calibrate(
         let _ = tx.send(AppEvent::CalibrationError(
             "Failed to perform face detection during calibration.".to_string(),
         ));
-        let _ = super::videocapture::close_camera(&mut cam);
         return;
     };
 
@@ -124,12 +126,11 @@ pub fn opencv_posture_calibrate(
         let _ = tx.send(AppEvent::CalibrationError(
             "Failed to perform face detection during calibration.".to_string(),
         ));
-        let _ = super::videocapture::close_camera(&mut cam);
         return;
     };
 
     // TODO: Handle cases where few or no faces were detected
-
+    
     let good_areas = good_detections
         .iter()
         .filter_map(|d| {
@@ -151,6 +152,19 @@ pub fn opencv_posture_calibrate(
             }
         })
         .collect::<Vec<f64>>();
+    
+    let min_needed_to_proceed = pose_proc_configs.calibration_samples_needed / 3;
+    log::debug!("Calibration: good detections areas: {:?}", good_areas.len());
+    log::debug!("Calibration: bad detections areas: {:?}", bad_areas.len());
+
+    if good_areas.len() < min_needed_to_proceed ||
+       bad_areas.len() < min_needed_to_proceed {
+        log::error!("Calibration failed: too many frames with no face detected in good posture samples");
+        let _ = tx.send(AppEvent::CalibrationError(
+            "No proper consistent face detected. Please ensure your face is visible and try again.".to_string(),
+        ));
+        return;
+    }
 
     // Using MAD-filter to reject outliers
     let good_median_area =
@@ -159,17 +173,35 @@ pub fn opencv_posture_calibrate(
         super::utils::mad_filter_median(&bad_areas, pose_proc_configs.mad_filter_k);
     let midpoint = (good_median_area + bad_median_area) / 2.0;
 
+
+    // Detecting if calibration is valid
+    log::info!(
+        "Calibration median difference: {}",
+        (bad_median_area - good_median_area).abs()
+    );
+
+    if (bad_median_area - good_median_area).abs() < 1e-3 {
+        log::error!("Calibration failed: insufficient difference between good and bad postures");
+        let _ = tx.send(AppEvent::CalibrationError(
+            "insufficient difference between good and bad postures.".to_string(),
+        ));
+        return;
+    };
+
+
     let calibration_result = super::CalibrationResult {
         posture_good_baseline: good_median_area,
         posture_bad_baseline: bad_median_area,
         posture_midpoint: midpoint,
     };
 
-    /*dbg!("Calibration Result: Good Baseline: {}, Bad Baseline: {}, Midpoint: {}",
+    
+    log::info!("Calibration Result: Good Baseline: {}, Bad Baseline: {}, Midpoint: {}",
         calibration_result.posture_good_baseline,
         calibration_result.posture_bad_baseline,
         calibration_result.posture_midpoint
-    );*/
+    );
+    
 
     log::info!("Calibration completed successfully");
     let _ = tx.send(AppEvent::CalibrationCompleted(calibration_result));
