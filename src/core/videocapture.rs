@@ -4,7 +4,7 @@ use opencv::{
     videoio::{VideoCapture, VideoCaptureAPIs},
 };
 
-pub fn open_camera(index: i32, api: Option<VideoCaptureAPIs>) -> opencv::Result<VideoCapture> {
+pub fn open_camera(index: i32, api: Option<VideoCaptureAPIs>) -> opencv::Result<VideoCapture,opencv::Error> {
 
     let used_api: i32;
     // if windows, use DirectShow by default, elese, use any
@@ -19,17 +19,37 @@ pub fn open_camera(index: i32, api: Option<VideoCaptureAPIs>) -> opencv::Result<
 
     let mut cam = VideoCapture::new(index, used_api)?;
     if !cam.is_opened()? {
+        
         return Err(opencv::Error::new(
             opencv::core::StsError,
             format!("Failed to open camera with index {index}"),
         ));
     }
 
-    // First few frames can sometimes be black, so we need to discard them
-    const DISCARDED_FRAMES: i32 = 5;
-    for _ in 0..DISCARDED_FRAMES {
+    // Wait for non uniform frames
+    const TIMEOUT_FRAMES : i32 = 32;
+
+    for index in 0..TIMEOUT_FRAMES {
         let mut temp_frame = Mat::default();
-        cam.read(&mut temp_frame)?;
+
+        let read = cam.read(&mut temp_frame)?;
+        if !read || temp_frame.empty() {
+            log::warn!("Camera {index} read empty frame during initialization check");
+            continue;
+        }
+        let (is_uniform, std0, std1, std2) = super::utils::is_frame_uniform_color(&temp_frame, 1.0)?;
+        println!("Camera {index} initialization check: is_uniform={is_uniform}, stddev=({std0}, {std1}, {std2})");
+        if !is_uniform {
+            log::debug!("Camera {index} initialized after {} frames", index + 1);
+            break;
+        }
+    }
+    if index == TIMEOUT_FRAMES - 1 {
+        log::warn!("Camera {index} may not have initialized properly after {} frames", TIMEOUT_FRAMES);
+        return Err(opencv::Error::new(
+            opencv::core::StsError,
+            format!("Camera {index} may not have initialized properly after {} frames", TIMEOUT_FRAMES),
+        ));
     }
 
     Ok(cam)

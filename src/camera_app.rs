@@ -631,8 +631,8 @@ impl CameraApp {
                 }
             }
 
-            events::AppEvent::PostureAssessmentError(msg) => {
-                info!("Posture Assessment Error: {msg}");
+            events::AppEvent::PostureAssessmentError(err, msg) => {
+                log::error!("Posture Assessment Error: {:?} {}", err, msg);
             }
 
             events::AppEvent::PostureAssessmentScore(score) => {

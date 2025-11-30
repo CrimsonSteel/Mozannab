@@ -18,6 +18,30 @@ pub enum PostureClass {
     Unknown,
 }
 
+pub fn wait_with_jitter(
+    rx: &Receiver<CalibrationCommand>,
+    base_interval_ms: u64,
+    jitter_ms: u64
+) -> bool {
+    let start_time = std::time::Instant::now();
+    let rand_ms = rand::random::<u64>() % jitter_ms;
+    let wait_duration = std::time::Duration::from_millis(base_interval_ms + rand_ms);
+
+    loop {
+        if is_stop_requested(rx) {
+            return true;
+        }
+
+        if start_time.elapsed() >= wait_duration {
+            break;
+        }
+
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+
+    false
+}
+
 pub fn assess_posture(
     posture_results: &[Option<super::FaceData>],
     calibration: &super::CalibrationResult,
@@ -124,8 +148,6 @@ pub fn opencv_posture_loop(
 ) {
     let pose_proc_configs = super::PostureProcConfig::default();
 
-    let mut last_check_time = std::time::Instant::now();
-
     log::info!("Posture worker starting for camera {selected_camera}");
 
     while let Ok(cmd) = rx.try_recv() {
@@ -136,47 +158,59 @@ pub fn opencv_posture_loop(
     log::info!("Posture assessment started");
 
     loop {
-        if is_stop_requested(rx) {
+        
+        let check_interval_ms = pose_proc_configs.check_interval_ms;
+        let check_interval_jitter_ms = pose_proc_configs.check_interval_jitter_ms;
+
+        let stop_requested = wait_with_jitter(rx, check_interval_ms, check_interval_jitter_ms);
+        if stop_requested {
             log::info!("Posture worker stop requested");
             break;
-        }
-
-        let elapsed = last_check_time.elapsed();
-        let rand_ms = rand::random::<u64>() % pose_proc_configs.check_interval_jitter_ms;
-        if elapsed.as_millis() <= (pose_proc_configs.check_interval_ms + rand_ms) as u128 {
-            std::thread::sleep(std::time::Duration::from_millis(100));
-            continue;
         }
 
         // Perform posture assessment step
         let Ok(mut cam) = super::videocapture::open_camera(selected_camera, None) else {
             log::error!("Posture: failed to open camera {selected_camera}");
             let _ = tx.send(AppEvent::PostureAssessmentError(
+                crate::events::PoseErrors::CameraOpenError,
                 "Failed to open camera for posture assessment.".to_string(),
             ));
-            return;
+
+            // Don't return
+            // return;
+            log::error!("Posture: failed to open camera for posture assessment.. Moving forward");
+            continue;
         };
         log::debug!("Posture: camera {selected_camera} opened");
 
         let mut frames: Vec<opencv::core::Mat> =
             Vec::with_capacity(pose_proc_configs.history_size);
 
+        let mut any_error = false;
         for _ in 0..pose_proc_configs.history_size {
             let Ok(frame) = super::videocapture::read_frame(&mut cam, true) else {
                 log::error!(
                     "Posture: failed to read frame from camera {selected_camera}"
                 );
                 let _ = tx.send(AppEvent::PostureAssessmentError(
+                    crate::events::PoseErrors::FrameReadError,
                     "Failed to read frame from camera.".to_string(),
                 ));
                 let _ = super::videocapture::close_camera(&mut cam);
-                return;
+                // Don't return;
+                any_error = true;
+                break;
             };
-            super::utils::show_image("window_name", &frame, 200);
+            // super::utils::show_image("window_name", &frame, 200);
             frames.push(frame);
 
 
             std::thread::sleep(std::time::Duration::from_millis(200));
+        }
+
+        if any_error {
+            log::error!("Posture: failed to read frames from camera for posture assessment.. Moving forward");
+            continue;
         }
 
         let _ = super::videocapture::close_camera(&mut cam);
@@ -185,10 +219,16 @@ pub fn opencv_posture_loop(
         // Process frames for posture assessment
         let Ok(posture_results) = super::model::batch_inference(&frames) else {
             let _ = tx.send(AppEvent::PostureAssessmentError(
+                crate::events::PoseErrors::PostureAssessmentError,
                 "Failed to perform posture assessment.".to_string(),
             ));
-            return;
+
+            // Debug return
+            // return;
+            log::error!("Posture: failed to perform posture assessment.. Moving forward");
+            continue;
         };
+        log::debug!("Posture data obtained: {:?}", posture_results);
 
         let assessment = assess_posture(&posture_results, &calibration_result, &pose_proc_configs);
         log::debug!(
@@ -224,12 +264,15 @@ pub fn opencv_posture_loop(
                     severity_msg.to_string(),
                 )));
             }
+            PostureClass::Unknown => {
+                // TODO: This can happen with virtual cams for some reason.
+                // Problem is: camera will open on black frames. Currently, we are return error as if it failed to open
+            }
             _ => {}
         }
 
         let _ = tx.send(AppEvent::PostureAssessmentScore(assessment.raw_score));
 
-        last_check_time = std::time::Instant::now();
     }
 
     log::info!(

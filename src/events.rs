@@ -1,5 +1,13 @@
 use std::sync::mpsc::{self, Receiver, Sender};
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PoseErrors {
+    CameraOpenError,
+    FrameReadError,
+    FaceDetectionError,
+    PostureAssessmentError,
+}
+
 pub enum AppEvent {
     CalibrationGoodPoseFinished,
     CalibrationBadPoseFinished,
@@ -11,7 +19,7 @@ pub enum AppEvent {
 
     PostureAssessmentStarted,
     PostureAssessmentCompleted,
-    PostureAssessmentError(String),
+    PostureAssessmentError(PoseErrors, String),
     PostureAssessmentWarning((crate::core::pose::PostureClass, f64, String)), // class, severity, and message
     PostureAssessmentScore(f64),
 }

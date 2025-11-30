@@ -119,3 +119,23 @@ pub fn mad_filter_median(values: &[f64], k: f64) -> f64 {
         sorted_filtered[sorted_filtered.len() / 2]
     }
 }
+
+/*
+    Note: 1- Very low threshold means very uniform
+          2- This is needed to filter out frames where the camera might be still initializing
+             and shows a black or blank screen.
+*/
+
+pub fn is_frame_uniform_color(frame: &Mat, threshold: f64) -> opencv::Result<(bool, f64, f64, f64)> {
+    // Calculate mean and standard deviation
+    let mut mean = core::Scalar::default();
+    let mut stddev = core::Scalar::default();
+    core::mean_std_dev(frame, &mut mean, &mut stddev, &core::no_array())?;
+    
+    // If standard deviation is very low across all channels, frame is uniform
+    let is_uniform = stddev[0] < threshold 
+        && stddev[1] < threshold 
+        && stddev[2] < threshold;
+
+    Ok((is_uniform, stddev[0], stddev[1], stddev[2]))
+}
